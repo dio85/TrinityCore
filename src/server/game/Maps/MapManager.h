@@ -21,6 +21,7 @@
 #include "GridDefines.h"
 #include "IteratorPair.h"
 #include "MapUpdater.h"
+#include "Optional.h"
 #include "Position.h"
 #include "SharedDefines.h"
 #include "UniqueTrackablePtr.h"
@@ -50,9 +51,8 @@ class TC_GAME_API MapManager
         MapManager& operator=(MapManager&&) = delete;
 
         static MapManager* instance();
-
-        Map* CreateMap(uint32 mapId, Player* player);
         Map* CreateBaseMap(uint32 id);
+        Map* CreateMap(uint32 mapId, Player* player, Optional<uint32> lfgDungeonsId = {});
         Map* FindMap(uint32 mapId, uint32 instanceId) const;
         uint32 FindInstanceIdForPlayer(uint32 mapId, Player const* player) const;
 
@@ -140,7 +140,8 @@ class TC_GAME_API MapManager
         Map* FindMap_i(uint32 mapId, uint32 instanceId) const;
 
         Map* CreateWorldMap(uint32 mapId, uint32 instanceId);
-        InstanceMap* CreateInstance(uint32 mapId, uint32 instanceId, InstanceLock* instanceLock, Difficulty difficulty, TeamId team, Group* group);
+        InstanceMap* CreateInstance(uint32 mapId, uint32 instanceId, InstanceLock* instanceLock, Difficulty difficulty, TeamId team, Group* group,
+            Optional<uint32> lfgDungeonsId);
         BattlegroundMap* CreateBattleground(uint32 mapId, uint32 instanceId, Battleground* bg);
         GarrisonMap* CreateGarrison(uint32 mapId, uint32 instanceId, Player* owner);
 

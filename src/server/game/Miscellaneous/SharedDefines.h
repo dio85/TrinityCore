@@ -8497,6 +8497,13 @@ enum WorldState : uint32
     WS_WAR_MODE_ALLIANCE_BUFF_VALUE = 17043,
 };
 
+enum class SoundKitPlayType : uint8
+{
+    Normal      = 0,
+    ObjectSound = 1,
+    Max         = 2
+};
+
 enum BattleGroundCapturePointState : int8
 {
     NODE_STATE_NONE = 0,
@@ -8507,6 +8514,6 @@ enum BattleGroundCapturePointState : int8
 
     NODE_STATE_HORDE_CAPTURE = 4,
     NODE_STATE_ALLIANCE_CAPTURE = 5,
-};
+}
 
 #endif
