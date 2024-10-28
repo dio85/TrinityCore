@@ -8514,6 +8514,6 @@ enum BattleGroundCapturePointState : int8
 
     NODE_STATE_HORDE_CAPTURE = 4,
     NODE_STATE_ALLIANCE_CAPTURE = 5,
-}
+};
 
 #endif
