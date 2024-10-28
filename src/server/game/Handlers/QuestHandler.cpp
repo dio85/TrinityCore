@@ -906,18 +906,6 @@ void WorldSession::HandleQueryAdventureMapPOI(WorldPackets::Quest::QueryAdventur
     SendPacket(result.Write());
 }
 
-void WorldSession::HandleQueryTreasurePicker(WorldPackets::Quest::QueryTreasurePicker& packet)
-{
-    Player* player = GetPlayer();
-    if (!player)
-        return;
-
-    WorldPackets::Quest::QueryQuestRewardResponse response;
-
-    sWorldQuestMgr->BuildRewardPacket(player, packet.QuestID, packet.TreasurePickerID, response);
-    SendPacket(response.Write());
-}
-
 void WorldSession::HandlePlayerChoiceResponse(WorldPackets::Quest::ChoiceResponse& choiceResponse)
 {
     if (_player->PlayerTalkClass->GetInteractionData().PlayerChoiceId != uint32(choiceResponse.ChoiceID))

@@ -1639,7 +1639,6 @@ class TC_GAME_API WorldSession
         void HandleRequestAreaPoiUpdate(WorldPackets::Quest::RequestAreaPoiUpdate& packet);
         bool AdventureMapPOIAvailable(uint32 adventureMapPOIID);
         void HandleQueryAdventureMapPOI(WorldPackets::Quest::QueryAdventureMapPOI& packet);
-        void HandleQueryTreasurePicker(WorldPackets::Quest::QueryTreasurePicker& packet);
         void HandlePlayerChoiceResponse(WorldPackets::Quest::ChoiceResponse& choiceResponse);
         void HandleUiMapQuestLinesRequest(WorldPackets::Quest::UiMapQuestLinesRequest& uiMapQuestLinesRequest);
         void HandleQueryTreasurePicker(WorldPackets::Query::QueryTreasurePicker const& queryTreasurePicker);
