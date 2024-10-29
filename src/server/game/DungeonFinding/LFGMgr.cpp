@@ -44,15 +44,18 @@
 namespace lfg
 {
 
-LFGDungeonData::LFGDungeonData() : id(0), name(), map(0), type(0), expansion(0), group(0), contentTuningId(0),
-    difficulty(DIFFICULTY_NONE), RequiredPlayerConditionId(0), seasonal(false), x(0.0f), y(0.0f), z(0.0f), o(0.0f), requiredItemLevel(0), requiredChromieTime(0), finalDungeonEncounterId(0)
+LFGDungeonData::LFGDungeonData(): id(0), name(), map(0), type(0), subType(0), expansion(0), group(0),
+        contentTuningId(0), difficulty(DIFFICULTY_NONE), RequiredPlayerConditionId(0),
+        seasonal(false), x(0.0f), y(0.0f), z(0.0f), o(0.0f),
+        requiredItemLevel(0), requiredChromieTime(0), finalDungeonEncounterId(0)
 {
 }
 
 LFGDungeonData::LFGDungeonData(LFGDungeonsEntry const* dbc) : id(dbc->ID), name(dbc->Name[sWorld->GetDefaultDbcLocale()]), map(dbc->MapID),
-        type(uint8(dbc->TypeID)), expansion(uint8(dbc->ExpansionLevel)), group(uint8(dbc->GroupID)),
-        RequiredPlayerConditionId(uint32(dbc->RequiredPlayerConditionId)), contentTuningId(uint32(dbc->ContentTuningID)), difficulty(Difficulty(dbc->DifficultyID)),
-        seasonal((dbc->Flags[0] & LFG_FLAG_SEASONAL) != 0), x(0.0f), y(0.0f), z(0.0f), o(0.0f),
+        type(uint8(dbc->TypeID)), subType(0), expansion(uint8(dbc->ExpansionLevel)), group(uint8(dbc->GroupID)),
+        contentTuningId(uint32(dbc->ContentTuningID)), RequiredPlayerConditionId(uint32(dbc->RequiredPlayerConditionId)),
+        difficulty(Difficulty(dbc->DifficultyID)), seasonal((dbc->Flags[0] & LFG_FLAG_SEASONAL) != 0),
+        x(0.0f), y(0.0f), z(0.0f), o(0.0f),
         requiredItemLevel(0), requiredChromieTime(0), finalDungeonEncounterId(0)
 {
 }
