@@ -306,10 +306,10 @@ namespace WorldPackets
             uint8 Status = 0;
         };
 
-        class LfgListApplyToGroupResponce final : public ServerPacket
+        class LfgListApplyToGroupResponse final : public ServerPacket
         {
         public:
-            LfgListApplyToGroupResponce() : ServerPacket(SMSG_LFG_LIST_APPLY_TO_GROUP_RESULT, 28 + 28 + 4 + 4 + 1 + 1 + 150) { }
+            LfgListApplyToGroupResponse() : ServerPacket(SMSG_LFG_LIST_APPLY_TO_GROUP_RESULT, 28 + 28 + 4 + 4 + 1 + 1 + 150) { }
 
             WorldPacket const* Write() override;
 

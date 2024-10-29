@@ -327,7 +327,7 @@ void WorldPackets::LfgList::LfgListUpdateRequest::Read()
     _worldPacket >> UpdateRequest;
 }
 
-WorldPacket const* WorldPackets::LfgList::LfgListApplyToGroupResponce::Write()
+WorldPacket const* WorldPackets::LfgList::LfgListApplyToGroupResponse::Write()
 {
     _worldPacket << ApplicantTicket;
     _worldPacket << ApplicationTicket;

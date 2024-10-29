@@ -550,55 +550,61 @@ void LFGListMgr::SendLfgListApplyForGroupResult(LFGListEntry const* lfgEntry, LF
     if (!group)
         return;
 
-    WorldPackets::LfgList::LfgListApplyToGroupResponce responce;
+    WorldPackets::LfgList::LfgListApplyToGroupResponse response;
 
-    responce.ApplicantTicket.RequesterGuid = ObjectGuid::Create<HighGuid::Player>(application->PlayerGuid);
-    responce.ApplicantTicket.Id = application->ID;
-    responce.ApplicantTicket.Type = WorldPackets::LFG::RideType::LfgListApplicant;
-    responce.ApplicantTicket.Time = application->ApplicationTime;
+    response.ApplicantTicket.RequesterGuid = ObjectGuid::Create<HighGuid::Player>(application->PlayerGuid);
+    response.ApplicantTicket.Id = application->ID;
+    response.ApplicantTicket.Type = WorldPackets::LFG::RideType::LfgListApplicant;
+    response.ApplicantTicket.Time = application->ApplicationTime;
 
-    responce.InviteExpireTimer = application->Timeout;
-    responce.Status = AsUnderlyingType(LFGListStatus::Joined);
-    responce.Role = application->RoleMask;
-    responce.ApplicationStatus = AsUnderlyingType(application->ApplicationStatus);
+    response.InviteExpireTimer = application->Timeout;
+    response.Status = AsUnderlyingType(LFGListStatus::Joined);
+    response.Role = application->RoleMask;
+    response.ApplicationStatus = AsUnderlyingType(application->ApplicationStatus);
 
     auto activityID = lfgEntry->GroupFinderActivityData->ID;
 
-    responce.ApplicationTicket.RequesterGuid = group->GetGUID();
-    responce.ApplicationTicket.Id = group->GetGUID().GetCounter();
-    responce.ApplicationTicket.Type = WorldPackets::LFG::RideType::LfgListApplication;
-    responce.ApplicationTicket.Time = lfgEntry->CreationTime;
+    response.ApplicationTicket.RequesterGuid = group->GetGUID();
+    response.ApplicationTicket.Id = group->GetGUID().GetCounter();
+    response.ApplicationTicket.Type = WorldPackets::LFG::RideType::LfgListApplication;
+    response.ApplicationTicket.Time = lfgEntry->CreationTime;
 
-    responce.SearchResult.ApplicationTicket.RequesterGuid = group->GetGUID();
-    responce.SearchResult.ApplicationTicket.Id = group->GetGUID().GetCounter();
-    responce.SearchResult.ApplicationTicket.Type = WorldPackets::LFG::RideType::LfgListApplication;
-    responce.SearchResult.ApplicationTicket.Time = lfgEntry->CreationTime;
-    responce.SearchResult.LastTouchedVoiceChat = group->GetLeaderGUID();
-    responce.SearchResult.PartyGUID = group->GetLeaderGUID();
-    responce.SearchResult.BNetFriends = group->GetLeaderGUID();
-    responce.SearchResult.GuildMates = group->GetLeaderGUID();
-    responce.SearchResult.VirtualRealmAddress = GetVirtualRealmAddress();
-    responce.SearchResult.CompletedEncounters = 0;
-    responce.SearchResult.ResultID = 3;
-    responce.SearchResult.Age = lfgEntry->CreationTime;
-    responce.SearchResult.ApplicationStatus = AsUnderlyingType(LFGListApplicationStatus::None);
-    responce.SearchResult.JoinRequest.ActivityID = activityID;
-    responce.SearchResult.JoinRequest.ItemLevel = lfgEntry->ItemLevel;
-    responce.SearchResult.JoinRequest.HonorLevel = lfgEntry->HonorLevel;
-    responce.SearchResult.JoinRequest.GroupName = lfgEntry->GroupName;
-    responce.SearchResult.JoinRequest.Comment = lfgEntry->Comment;
-    responce.SearchResult.JoinRequest.VoiceChat = lfgEntry->VoiceChat;
-    responce.SearchResult.JoinRequest.AutoAccept = lfgEntry->AutoAccept;
-    responce.SearchResult.JoinRequest.QuestID = lfgEntry->QuestID;
+    response.SearchResult.ApplicationTicket.RequesterGuid = group->GetGUID();
+    response.SearchResult.ApplicationTicket.Id = group->GetGUID().GetCounter();
+    response.SearchResult.ApplicationTicket.Type = WorldPackets::LFG::RideType::LfgListApplication;
+    response.SearchResult.ApplicationTicket.Time = lfgEntry->CreationTime;
+    response.SearchResult.LastTouchedVoiceChat = group->GetLeaderGUID();
+    response.SearchResult.PartyGUID = group->GetLeaderGUID();
+    response.SearchResult.BNetFriends = group->GetLeaderGUID();
+    response.SearchResult.GuildMates = group->GetLeaderGUID();
+    response.SearchResult.VirtualRealmAddress = GetVirtualRealmAddress();
+    response.SearchResult.CompletedEncounters = 0;
+    response.SearchResult.ResultID = 3;
+    response.SearchResult.Age = lfgEntry->CreationTime;
+    response.SearchResult.ApplicationStatus = AsUnderlyingType(LFGListApplicationStatus::None);
+    response.SearchResult.JoinRequest.ActivityID = activityID;
+    response.SearchResult.JoinRequest.ItemLevel = lfgEntry->ItemLevel;
+    response.SearchResult.JoinRequest.HonorLevel = lfgEntry->HonorLevel;
+    response.SearchResult.JoinRequest.GroupName = lfgEntry->GroupName;
+    response.SearchResult.JoinRequest.Comment = lfgEntry->Comment;
+    response.SearchResult.JoinRequest.VoiceChat = lfgEntry->VoiceChat;
+    response.SearchResult.JoinRequest.AutoAccept = lfgEntry->AutoAccept;
+    response.SearchResult.JoinRequest.QuestID = lfgEntry->QuestID;
 
     for (auto const& member : group->GetMemberSlots())
     {
-        role = member.roles >= 2 ? std::log2(member.roles) - 1 : member.roles;
-        responce.SearchResult.Members.emplace_back(member._class, member.roles);
+        if (member.roles > 0) {
+            // Calculate role safely if roles >= 2
+            role = member.roles >= 2 ? static_cast<uint8>(std::log2(member.roles)) - 1 : member.roles;
+            response.SearchResult.Members.emplace_back(member._class, role);
+        }
     }
-    for (auto const& member : lfgEntry->ApplicationsContainer)
-        if (auto applicant = member.second.GetPlayer())
-            responce.SearchResult.Members.emplace_back(applicant->GetClass(), member.second.RoleMask);
 
-    player->SendDirectMessage(responce.Write());
+    for (auto const& member : lfgEntry->ApplicationsContainer)
+    {
+        if (auto applicant = member.second.GetPlayer())
+            response.SearchResult.Members.emplace_back(applicant->GetClass(), member.second.RoleMask);
+    }
+
+    player->SendDirectMessage(response.Write());
 }

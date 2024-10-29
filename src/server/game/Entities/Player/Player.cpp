@@ -21015,7 +21015,7 @@ void Player::_SaveWorldQuestStatus(CharacterDatabaseTransaction& trans)
         uint32 quest_id = iter->first;
         uint32 resetTime = iter->second.resetTime;
         iter->second.needSave = false;
-        ObjectGuid::LowType guid;
+        ObjectGuid::LowType guid = 0;
         Quest const* quest =sObjectMgr->GetQuestTemplate(quest_id);
         if (quest && quest->GetQuestInfoID() == QUEST_INFO_ACCOUNT)
             guid = 0;
