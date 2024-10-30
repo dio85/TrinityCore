@@ -1194,7 +1194,7 @@ struct ChrCustomizationOptionLoadInfo
         { true, FT_INT, "Flags" },
         { false, FT_INT, "ChrModelID" },
         { true, FT_INT, "SortIndex" },
-        { false, FT_INT, "ChrCustomizationCategoryID" },
+        { true, FT_INT, "ChrCustomizationCategoryID" },
         { true, FT_INT, "OptionType" },
         { false, FT_FLOAT, "BarberShopCostModifier" },
         { true, FT_INT, "ChrCustomizationID" },
