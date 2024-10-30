@@ -1590,7 +1590,7 @@ struct DifficultyEntry
     uint32 GroupSizeHealthCurveID;
     uint32 GroupSizeDmgCurveID;
     uint32 GroupSizeSpellPointsCurveID;
-    uint32 Field_11_0_5_56487_013;
+    int32 Unknown1105;
 };
 
 struct DungeonEncounterEntry

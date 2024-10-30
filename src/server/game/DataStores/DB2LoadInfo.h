@@ -854,7 +854,7 @@ struct BroadcastTextDurationLoadInfo
         { false, FT_INT, "ID" },
         { true, FT_INT, "Locale" },
         { true, FT_INT, "Duration" },
-        { false, FT_INT, "BroadcastTextID"},
+        { false, FT_INT, "BroadcastTextID" },
     };
 
     static constexpr DB2LoadInfo Instance{ Fields, 4, &BroadcastTextDurationMeta::Instance, HOTFIX_SEL_BROADCAST_TEXT_DURATION };
@@ -1192,7 +1192,7 @@ struct ChrCustomizationOptionLoadInfo
         { false, FT_INT, "ID" },
         { false, FT_SHORT, "SecondaryID" },
         { true, FT_INT, "Flags" },
-        { true, FT_INT, "ChrModelID" },
+        { false, FT_INT, "ChrModelID" },
         { true, FT_INT, "SortIndex" },
         { false, FT_INT, "ChrCustomizationCategoryID" },
         { true, FT_INT, "OptionType" },
@@ -1824,7 +1824,7 @@ struct DifficultyLoadInfo
         { false, FT_INT, "GroupSizeHealthCurveID" },
         { false, FT_INT, "GroupSizeDmgCurveID" },
         { false, FT_INT, "GroupSizeSpellPointsCurveID" },
-        { false, FT_INT, "Field_11_0_5_56487_013" },
+        { true, FT_INT, "Unknown1105" },
     };
 
     static constexpr DB2LoadInfo Instance{ Fields, 15, &DifficultyMeta::Instance, HOTFIX_SEL_DIFFICULTY };
@@ -3771,7 +3771,7 @@ struct LfgDungeonsLoadInfo
         { false, FT_SHORT, "BonusReputationAmount" },
         { false, FT_SHORT, "MentorItemLevel" },
         { false, FT_BYTE, "MentorCharLevel" },
-        { false, FT_BYTE, "MaxPremadeGroupSize"},
+        { false, FT_BYTE, "MaxPremadeGroupSize" },
         { true, FT_INT, "ContentTuningID" },
         { true, FT_INT, "Flags1" },
         { true, FT_INT, "Flags2" },

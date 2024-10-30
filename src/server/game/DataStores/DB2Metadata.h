@@ -2319,7 +2319,7 @@ struct ChrCustomizationOptionMeta
         { FT_INT, 1, true },
     };
 
-    static constexpr DB2Meta Instance{ 3384247, 1, 13, 13, 0x1EB3451E, Fields, 6 };
+    static constexpr DB2Meta Instance{ 3384247, 1, 13, 13, 0x1EB3451E, Fields, 4 };
 };
 
 struct ChrCustomizationReqMeta
@@ -2981,8 +2981,9 @@ struct ContentPushMeta
 
 struct ContentRestrictionRuleMeta
 {
-    static constexpr DB2MetaField Fields[8] =
+    static constexpr DB2MetaField Fields[9] =
     {
+        { FT_INT, 1, true },
         { FT_INT, 1, true },
         { FT_INT, 1, true },
         { FT_INT, 1, true },
@@ -2993,7 +2994,7 @@ struct ContentRestrictionRuleMeta
         { FT_INT, 1, true },
     };
 
-    static constexpr DB2Meta Instance{ 4668112, -1, 8, 7, 0xB9C0B42E, Fields, 7 };
+    static constexpr DB2Meta Instance{ 4668112, -1, 9, 8, 0xC10A8C25, Fields, 8 };
 };
 
 struct ContentRestrictionRuleSetMeta
@@ -4012,7 +4013,7 @@ struct DifficultyMeta
         { FT_INT, 1, false },
         { FT_INT, 1, false },
         { FT_INT, 1, false },
-        { FT_INT,1, false },
+        { FT_INT, 1, true },
     };
 
     static constexpr DB2Meta Instance{ 1352127, -1, 14, 14, 0x017A4F91, Fields, -1 };
@@ -7477,7 +7478,7 @@ struct LFGDungeonsMeta
         { FT_SHORT, 1, false },
         { FT_SHORT, 1, false },
         { FT_BYTE, 1, false },
-        { FT_BYTE,1, false },
+        { FT_BYTE, 1, false },
         { FT_INT, 1, true },
         { FT_INT, 2, true },
     };
@@ -10828,12 +10829,13 @@ struct ScreenEffectTypeMeta
 
 struct ScreenLocationMeta
 {
-    static constexpr DB2MetaField Fields[1] =
+    static constexpr DB2MetaField Fields[2] =
     {
         { FT_STRING_NOT_LOCALIZED, 1, true },
+        { FT_BYTE, 1, false },
     };
 
-    static constexpr DB2Meta Instance{ 1279416, -1, 1, 1, 0x4E07A6EC, Fields, -1 };
+    static constexpr DB2Meta Instance{ 1279416, -1, 2, 2, 0xB5DB4956, Fields, -1 };
 };
 
 struct SeamlessSiteMeta
@@ -13576,6 +13578,23 @@ struct UIChromieTimeExpansionInfoMeta
     };
 
     static constexpr DB2Meta Instance{ 3488582, -1, 13, 13, 0x3425F0FF, Fields, -1 };
+};
+
+struct UICinematicIntroInfoMeta
+{
+    static constexpr DB2MetaField Fields[8] =
+    {
+        { FT_STRING, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+        { FT_INT, 1, true },
+    };
+
+    static constexpr DB2Meta Instance{ 6155772, -1, 8, 8, 0x44820FD5, Fields, -1 };
 };
 
 struct UICovenantAbilityMeta
