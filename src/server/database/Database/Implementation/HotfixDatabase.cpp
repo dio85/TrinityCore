@@ -611,10 +611,12 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_DESTRUCTIBLE_MODEL_DATA, "SELECT MAX(ID) + 1 FROM destructible_model_data", CONNECTION_SYNCH);
 
     // Difficulty.db2
+    PrepareStatement(HOTFIX_SEL_DIFFICULTY, "SELECT ID, Name, InstanceType, OrderIndex, OldEnumValue, FallbackDifficultyID, MinPlayers, MaxPlayers, "
         "Flags, ItemContext, ToggleDifficultyID, GroupSizeHealthCurveID, GroupSizeDmgCurveID, GroupSizeSpellPointsCurveID, Unknown1105 FROM difficulty"
         " WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_DIFFICULTY, "SELECT MAX(ID) + 1 FROM difficulty", CONNECTION_SYNCH);
     PREPARE_LOCALE_STMT(HOTFIX_SEL_DIFFICULTY, "SELECT ID, Name_lang FROM difficulty_locale WHERE (`VerifiedBuild` > 0) = ? AND locale = ?", CONNECTION_SYNCH);
+
 
     // DungeonEncounter.db2
     PrepareStatement(HOTFIX_SEL_DUNGEON_ENCOUNTER, "SELECT Name, ID, MapID, DifficultyID, OrderIndex, CompleteWorldStateID, Bit, Flags, "
