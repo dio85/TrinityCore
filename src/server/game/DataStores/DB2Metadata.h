@@ -1487,7 +1487,7 @@ struct BroadcastTextDurationMeta
         { FT_INT, 1, true },
     };
 
-    static constexpr DB2Meta Instance{ 2166900, -1, 3, 3, 0xE60CAC24, Fields, 0 };
+    static constexpr DB2Meta Instance{ 2166900, -1, 3, 2, 0x9CBEE39C, Fields, 2 };
 };
 
 struct CameraEffectMeta
@@ -2302,13 +2302,11 @@ struct ChrCustomizationMaterialMeta
 
 struct ChrCustomizationOptionMeta
 {
-    static constexpr DB2MetaField Fields[15] =
+    static constexpr DB2MetaField Fields[13] =
     {
         { FT_STRING, 1, true },
         { FT_INT, 1, false },
         { FT_SHORT, 1, false },
-        { FT_INT, 1, true },
-        { FT_INT, 1, true },
         { FT_INT, 1, true },
         { FT_INT, 1, true },
         { FT_INT, 1, true },
@@ -2321,7 +2319,7 @@ struct ChrCustomizationOptionMeta
         { FT_INT, 1, true },
     };
 
-    static constexpr DB2Meta Instance{ 3384247, 1, 15, 15, 0x3F9B06FB, Fields, 6 };
+    static constexpr DB2Meta Instance{ 3384247, 1, 13, 13, 0x1EB3451E, Fields, 6 };
 };
 
 struct ChrCustomizationReqMeta
@@ -3999,7 +3997,7 @@ struct DeviceBlacklistMeta
 
 struct DifficultyMeta
 {
-    static constexpr DB2MetaField Fields[13] =
+    static constexpr DB2MetaField Fields[14] =
     {
         { FT_STRING, 1, true },
         { FT_BYTE, 1, false },
@@ -4014,9 +4012,10 @@ struct DifficultyMeta
         { FT_INT, 1, false },
         { FT_INT, 1, false },
         { FT_INT, 1, false },
+        { FT_INT,1, false },
     };
 
-    static constexpr DB2Meta Instance{ 1352127, -1, 13, 13, 0xDDC70D8E, Fields, -1 };
+    static constexpr DB2Meta Instance{ 1352127, -1, 14, 14, 0x017A4F91, Fields, -1 };
 };
 
 struct DisplaySeasonMeta
@@ -7449,7 +7448,7 @@ struct LFGDungeonGroupMeta
 
 struct LFGDungeonsMeta
 {
-    static constexpr DB2MetaField Fields[29] =
+    static constexpr DB2MetaField Fields[30] =
     {
         { FT_STRING, 1, true },
         { FT_STRING, 1, true },
@@ -7478,11 +7477,12 @@ struct LFGDungeonsMeta
         { FT_SHORT, 1, false },
         { FT_SHORT, 1, false },
         { FT_BYTE, 1, false },
+        { FT_BYTE,1, false },
         { FT_INT, 1, true },
         { FT_INT, 2, true },
     };
 
-    static constexpr DB2Meta Instance{ 1361033, -1, 29, 29, 0xBA9CE7CB, Fields, -1 };
+    static constexpr DB2Meta Instance{ 1361033, -1, 30, 30, 0x9274FE74, Fields, -1 };
 };
 
 struct LFGDungeonsGroupingMapMeta
@@ -12126,7 +12126,7 @@ struct SpellMiscMeta
 {
     static constexpr DB2MetaField Fields[17] =
     {
-        { FT_INT, 15, true },
+        { FT_INT, 16, true },
         { FT_BYTE, 1, false },
         { FT_SHORT, 1, false },
         { FT_SHORT, 1, false },
@@ -12145,7 +12145,7 @@ struct SpellMiscMeta
         { FT_INT, 1, true },
     };
 
-    static constexpr DB2Meta Instance{ 1003144, -1, 17, 16, 0x4823459D, Fields, 16 };
+    static constexpr DB2Meta Instance{ 1003144, -1, 17, 16, 0xB2E0F1E4, Fields, 16 };
 };
 
 struct SpellMissileMeta

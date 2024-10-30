@@ -591,9 +591,9 @@ struct BroadcastTextEntry
 struct BroadcastTextDurationEntry
 {
     uint32 ID;
-    uint32 BroadcastTextID;
     int32 Locale;
     int32 Duration;
+    uint32 BroadcastTextID;
 };
 
 struct BountyEntry
@@ -839,8 +839,6 @@ struct ChrCustomizationOptionEntry
     uint32 ID;
     uint16 SecondaryID;
     int32 Flags;
-    int32 ChrRacesID;
-    int32 Sex;
     uint32 ChrModelID;
     int32 SortIndex;
     int32 ChrCustomizationCategoryID;
@@ -1592,6 +1590,7 @@ struct DifficultyEntry
     uint32 GroupSizeHealthCurveID;
     uint32 GroupSizeDmgCurveID;
     uint32 GroupSizeSpellPointsCurveID;
+    uint32 Field_11_0_5_56487_013;
 };
 
 struct DungeonEncounterEntry
@@ -2836,6 +2835,7 @@ struct LFGDungeonsEntry
     uint16 BonusReputationAmount;
     uint16 MentorItemLevel;
     uint8 MentorCharLevel;
+    uint8 MaxPremadeGroupSize;
     int32 ContentTuningID;
     std::array<int32, 2> Flags;
 
@@ -3480,7 +3480,7 @@ struct QuestMoneyRewardEntry
 struct QuestPOIBlobEntry
 {
     int32       ID;
-    int16       MapID;
+    uint16       MapID;
     int32       UiMapID;
     int32       Flags;
     uint8       NumPoints;
@@ -4037,7 +4037,7 @@ struct SpellLevelsEntry
 struct SpellMiscEntry
 {
     uint32 ID;
-    std::array<int32, 15> Attributes;
+    std::array<int32, 16> Attributes;
     uint8 DifficultyID;
     uint16 CastingTimeIndex;
     uint16 DurationIndex;
