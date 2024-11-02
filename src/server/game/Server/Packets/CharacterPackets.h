@@ -911,6 +911,16 @@ namespace WorldPackets
 
             int32 Error;
         };
+
+        class FailedPlayerCondition final : public ServerPacket
+        {
+        public:
+            explicit FailedPlayerCondition() : ServerPacket(SMSG_FAILED_PLAYER_CONDITION) { }
+
+            WorldPacket const* Write() override;
+
+            int32 Id = 0;
+        };
     }
 }
 

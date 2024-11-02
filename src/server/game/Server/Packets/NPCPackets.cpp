@@ -290,4 +290,11 @@ void ChromieTimeSelectExpansion::Read()
     _worldPacket >> GUID;
     _worldPacket >> Expansion;
 }
+WorldPacket const* GarrisonCovenantPreviewOpenNpc::Write()
+{
+    _worldPacket << NpcGUID;
+    _worldPacket << CovenantID;
+
+    return &_worldPacket;
+}
 }

@@ -325,6 +325,17 @@ namespace WorldPackets
 
             WorldPacket const* Write() override { return &_worldPacket; }
         };
+
+        class GarrisonCovenantPreviewOpenNpc  final : public ServerPacket
+        {
+        public:
+            GarrisonCovenantPreviewOpenNpc() : ServerPacket(SMSG_COVENANT_PREVIEW_OPEN_NPC) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid NpcGUID;
+            int32 CovenantID = 0;
+        };
     }
 }
 

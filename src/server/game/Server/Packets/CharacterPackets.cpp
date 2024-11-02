@@ -835,5 +835,12 @@ WorldPacket const* PlayerSavePersonalEmblem::Write()
     return &_worldPacket;
 }
 
+WorldPacket const* FailedPlayerCondition::Write()
+{
+    _worldPacket << Id;
+
+    return &_worldPacket;
+}
+
 }
 }

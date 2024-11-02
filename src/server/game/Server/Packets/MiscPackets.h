@@ -1129,6 +1129,39 @@ namespace WorldPackets
 
             int32 Result = 0;
         };
+
+        class DisplayPromotion final : public ServerPacket
+        {
+        public:
+            DisplayPromotion() : ServerPacket(SMSG_DISPLAY_PROMOTION) { }
+
+            WorldPacket const* Write() override;
+
+            uint32 PromotionID = 0;
+        };
+
+        class DisplayWorldText final : public ServerPacket
+        {
+        public:
+            DisplayWorldText() : ServerPacket(SMSG_DISPLAY_WORLD_TEXT) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid Guid;
+            int32 Arg1 = 0;
+            int32 Arg2 = 0;
+            std::string Text;
+        };
+
+        class EndLightningStorm final : public ServerPacket
+        {
+        public:
+            EndLightningStorm() : ServerPacket(SMSG_END_LIGHTNING_STORM) { }
+
+            WorldPacket const* Write() override;
+
+            uint32 LightningStormId = 0;
+        };
     }
 }
 

@@ -1167,6 +1167,18 @@ namespace WorldPackets
             void Read() override { }
         };
 
+        class AuraPointsDepleted final : public ServerPacket
+        {
+        public:
+            AuraPointsDepleted() : ServerPacket(SMSG_AURA_POINTS_DEPLETED) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid Unit;
+            uint8 Slot = 0;
+            uint8 EffectIndex = 0;
+        };
+
         ByteBuffer& operator>>(ByteBuffer& buffer, SpellCastRequest& request);
     }
 }

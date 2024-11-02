@@ -1106,4 +1106,12 @@ void KeyboundOverride::Read()
 {
     _worldPacket >> OverrideID;
 }
+WorldPacket const* AuraPointsDepleted::Write()
+{
+    _worldPacket << Unit;
+    _worldPacket << Slot;
+    _worldPacket << EffectIndex;
+
+    return &_worldPacket;
+}
 }

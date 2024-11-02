@@ -481,4 +481,18 @@ WorldPacket const* GarrisonBuildingActivated::Write()
 
     return &_worldPacket;
 }
+WorldPacket const* GarrisonCovenantRenownSendCatchupState::Write()
+{
+    _worldPacket << CatchupState;
+
+    return &_worldPacket;
+}
+WorldPacket const* CreateShipmentResponse::Write()
+{
+    _worldPacket << ShipmentID;
+    _worldPacket << ShipmentRecID;
+    _worldPacket << Result;
+
+    return &_worldPacket;
+}
 }

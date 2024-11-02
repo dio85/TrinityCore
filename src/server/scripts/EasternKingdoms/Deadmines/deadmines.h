@@ -44,7 +44,9 @@ enum DMCreatureIds
     NPC_FOE_REAPER_5000     = 43778,
     NPC_ADMIRAL_RIPSNARL    = 47626,
     NPC_CAPTAIN_COOKIE      = 47739,
-    NPC_VANESSA_VAN_CLEEF   = 49541
+    NPC_VANESSA_VAN_CLEEF   = 49541,
+    NPC_VANESSA_NOTE        = 49564,
+    MAX_BOSS
 };
 
 enum DMGameObjectIds

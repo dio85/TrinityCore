@@ -890,3 +890,26 @@ WorldPacket const* WorldPackets::Misc::WeeklyRewardClaimResult::Write()
 
     return &_worldPacket;
 }
+
+WorldPacket const* WorldPackets::Misc::DisplayPromotion::Write()
+{
+    _worldPacket << PromotionID;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Misc::DisplayWorldText::Write()
+{
+    _worldPacket << Arg1;
+    _worldPacket << Arg2;
+    _worldPacket.WriteString(Text);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Misc::EndLightningStorm::Write()
+{
+    _worldPacket << LightningStormId;
+
+    return &_worldPacket;
+}

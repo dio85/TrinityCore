@@ -437,6 +437,28 @@ namespace WorldPackets
 
             uint32 GarrPlotInstanceID = 0;
         };
+
+        class GarrisonCovenantRenownSendCatchupState final : public ServerPacket
+        {
+        public:
+            GarrisonCovenantRenownSendCatchupState() : ServerPacket(SMSG_COVENANT_RENOWN_SEND_CATCHUP_STATE) { }
+
+            WorldPacket const* Write() override;
+
+            bool CatchupState = false;
+        };
+
+        class CreateShipmentResponse final : public ServerPacket
+        {
+        public:
+            CreateShipmentResponse() : ServerPacket(SMSG_CREATE_SHIPMENT_RESPONSE) { }
+
+            WorldPacket const* Write() override;
+
+            int64 ShipmentID = 0;
+            uint32 ShipmentRecID = 0;
+            uint32 Result = 0;
+        };
     }
 }
 
