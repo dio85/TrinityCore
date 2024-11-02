@@ -44,20 +44,18 @@ enum DMCreatureIds
     NPC_FOE_REAPER_5000     = 43778,
     NPC_ADMIRAL_RIPSNARL    = 47626,
     NPC_CAPTAIN_COOKIE      = 47739,
-    NPC_VANESSA_VAN_CLEEF   = 49541,
-    NPC_VANESSA_NOTE        = 49564,
-    MAX_BOSS
+    NPC_VANESSA_VAN_CLEEF   = 49541
 };
 
 enum DMGameObjectIds
 {
-    GO_FACTORY_DOOR     = 13965,
-    GO_IRON_CLAD_DOOR   = 16397,
-    GO_DEFIAS_CANNON    = 16398,
-    GO_DOOR_LEVER       = 101833,
-    GO_MAST_ROOM_DOOR   = 16400,
-    GO_HEAVY_DOOR       = 17153,
-    GO_FOUNDRY_DOOR     = 16399
+    GO_FACTORY_DOOR         = 13965,
+    GO_IRON_CLAD_DOOR       = 16397,
+    GO_DEFIAS_CANNON        = 16398,
+    GO_DOOR_LEVER           = 101833,
+    GO_MAST_ROOM_DOOR       = 16400,
+    GO_HEAVY_DOOR           = 17153,
+    GO_FOUNDRY_DOOR         = 16399
 };
 
 template <class AI, class T>
