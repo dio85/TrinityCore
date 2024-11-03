@@ -113,6 +113,14 @@ enum LfgLockStatusType
     LFG_LOCKSTATUS_MISSING_ACHIEVEMENT           = 1034
 };
 
+/// Used to hide random LFG dungeon entries from the dungeon finder. Either value above 0 is doing that, however, only 2 is being sent in sniffs
+enum class LfgSoftLock : uint8
+{
+    None = 0,
+    Unk1 = 1,
+    Unk2 = 2
+};
+
 /// Answer state (Also used to check compatibilites)
 enum LfgAnswer
 {
@@ -123,13 +131,13 @@ enum LfgAnswer
 
 struct TC_GAME_API LfgLockInfoData
 {
-    LfgLockInfoData(uint32 _lockStatus = 0, uint16 _requiredItemLevel = 0, float _currentItemLevel = 0, bool _softLock = false) :
+    LfgLockInfoData(uint32 _lockStatus = 0, uint16 _requiredItemLevel = 0, float _currentItemLevel = 0, LfgSoftLock _softLock = LfgSoftLock::None) :
         lockStatus(_lockStatus), requiredItemLevel(_requiredItemLevel), currentItemLevel(_currentItemLevel), softLock(_softLock) { }
 
     uint32 lockStatus;
     uint16 requiredItemLevel;
     float currentItemLevel;
-    bool softLock;
+    LfgSoftLock softLock;
 };
 
 typedef std::set<uint32> LfgDungeonSet;
