@@ -143,8 +143,8 @@ void WorldSession::SendLfgPlayerLockInfo()
 
     // Get Random dungeons that can be done at a certain level and expansion
     uint8 level = GetPlayer()->GetLevel();
-    uint32 contentTuningReplacementConditionMask = GetPlayer()->m_playerData->CtrOptions->ContentTuningConditionMask;
-    lfg::LfgDungeonSet const& randomDungeons = sLFGMgr->GetRandomAndSeasonalDungeons(GetPlayer(), GetExpansion(), contentTuningReplacementConditionMask);
+    uint32 contentTuningReplacementConditionMask = GetPlayer()->m_playerData->CtrOptions->ConditionalFlags;
+    lfg::LfgDungeonSet const& randomDungeons = sLFGMgr->GetRandomAndSeasonalDungeons(level, GetExpansion(), contentTuningReplacementConditionMask);
 
     WorldPackets::LFG::LfgPlayerInfo lfgPlayerInfo;
 
@@ -488,7 +488,7 @@ void WorldSession::SendLfgUpdateProposal(lfg::LfgProposal const& proposal)
     lfgProposalUpdate.CompletedMask = proposal.encounters;
     lfgProposalUpdate.ValidCompletedMask = true;
     lfgProposalUpdate.ProposalSilent = silent;
-    lfgProposalUpdate.IsRequeue = !proposal.isNew;
+    lfgProposalUpdate.FailedByMyParty = !proposal.isNew;
 
     for (auto const& player : proposal.players)
     {

@@ -1951,8 +1951,9 @@ LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
             {
                 return lfg::LFG_LOCKSTATUS_INSUFFICIENT_EXPANSION;
             }
-
-            if (Optional<ContentTuningLevels> levels = sDB2Manager.GetContentTuningData(dungeon->ContentTuningID, contentTuningReplacementConditionMask))
+            if (sInstanceLockMgr.FindActiveInstanceLock(guid, { dungeon->map, Difficulty(dungeon->difficulty) }))
+                return LFG_LOCKSTATUS_RAID_LOCKED;
+            if (Optional<ContentTuningLevels> levels = sDB2Manager.GetContentTuningData(dungeon->contentTuningId, player->m_playerData->CtrOptions->ConditionalFlags))
             {
                 if (levels->MinLevel > level)
                     return LFG_LOCKSTATUS_TOO_LOW_LEVEL;
