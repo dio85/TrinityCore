@@ -41,7 +41,6 @@ namespace Trainer
     void Trainer::SendSpells(Creature const* npc, Player* player, LocaleConstant locale) const
     {
         float reputationDiscount = player->GetReputationPriceDiscount(npc);
-
         WorldPackets::NPC::TrainerList trainerList;
         trainerList.TrainerGUID = npc->GetGUID();
         trainerList.TrainerType = AsUnderlyingType(_type);
@@ -95,7 +94,9 @@ namespace Trainer
             sendSpellVisual = false;
         }
 
-        float reputationDiscount = player->GetReputationPriceDiscount(npc);
+        //float reputationDiscount = player->GetReputationPriceDiscount(npc);
+        float reputationDiscount = 1.0f;
+
         int64 moneyCost = int64(trainerSpell->MoneyCost * reputationDiscount);
         if (!player->HasEnoughMoney(moneyCost))
         {
@@ -107,7 +108,8 @@ namespace Trainer
 
         if (sendSpellVisual)
         {
-            npc->SendPlaySpellVisualKit(179, 0, 0);     // 53 SpellCastDirected
+            // TODO: FIX crash
+            //npc->SendPlaySpellVisualKit(179, 0, 0);     // 53 SpellCastDirected
             player->SendPlaySpellVisualKit(362, 1, 0);  // 113 EmoteSalute
         }
 
