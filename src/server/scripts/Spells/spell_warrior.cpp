@@ -25,6 +25,13 @@
 #include "SpellScript.h"
 #include "Unit.h"
 
+enum WarriorSpells
+{
+    SPELL_WARRIOR_CHARGE_STUN                   = 7922,
+    SPELL_WARRIOR_CHARGE_ENERGIZE               = 34846,
+    SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_BUFF    = 65156,
+    SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_TALENT  = 64976
+};
 // 78 - Heroic Strike
 class spell_warr_heroic_strike : public SpellScript
 {
@@ -40,7 +47,47 @@ class spell_warr_heroic_strike : public SpellScript
     }
 };
 
+class spell_warr_charge : public SpellScript
+{
+    bool Validate(SpellInfo const* /*spellInfo*/) override
+    {
+        return ValidateSpellInfo(
+            {
+                SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_TALENT,
+                SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_BUFF,
+                SPELL_WARRIOR_CHARGE_ENERGIZE,
+                SPELL_WARRIOR_CHARGE_STUN
+            });
+    }
+
+    void HandleStun(SpellEffIndex /*effIdex*/)
+    {
+        if (Unit* caster = GetCaster())
+            caster->CastSpell(GetHitUnit(), SPELL_WARRIOR_CHARGE_STUN, true);
+    }
+
+    void HandleDummy(SpellEffIndex /*effIndex*/)
+    {
+        Unit* caster = GetCaster();
+        if (!caster)
+            return;
+
+        caster->CastSpell(caster, SPELL_WARRIOR_CHARGE_ENERGIZE, { SPELLVALUE_BASE_POINT0, GetEffectValue() });
+
+        // Juggernaut crit bonus
+        if (caster->HasAura(SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_TALENT))
+            caster->CastSpell(caster, SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_BUFF, true);
+    }
+
+    void Register() override
+    {
+        OnEffectHitTarget += SpellEffectFn(spell_warr_charge::HandleStun, EFFECT_0, SPELL_EFFECT_CHARGE);
+        OnEffectHitTarget += SpellEffectFn(spell_warr_charge::HandleDummy, EFFECT_1, SPELL_EFFECT_DUMMY);
+    }
+};
+
 void AddSC_warrior_spell_scripts()
 {
     RegisterSpellScript(spell_warr_heroic_strike);
+    RegisterSpellScript(spell_warr_charge);
 }
