@@ -523,7 +523,7 @@ int32 SpellEffectInfo::CalcValue(WorldObject const* caster /*= nullptr*/, int32 
     }
 
     // base amount modification based on spell lvl vs caster lvl
-    if (Scaling.Coefficient != 0.0f || _spellInfo->HasAttribute(SPELL_ATTR0_SCALES_WITH_CREATURE_LEVEL))
+    if (Scaling.Coefficient != 0.0f)
     {
         if (Scaling.ResourceCoefficient)
             comboDamage = Scaling.ResourceCoefficient * value;
@@ -561,7 +561,7 @@ int32 SpellEffectInfo::CalcValue(WorldObject const* caster /*= nullptr*/, int32 
 
 int32 SpellEffectInfo::CalcBaseValue(WorldObject const* caster, Unit const* target) const
 {
-    if (Scaling.Coefficient != 0.0f)
+    if (Scaling.Coefficient != 0.0f || _spellInfo->HasAttribute(SPELL_ATTR0_SCALES_WITH_CREATURE_LEVEL))
     {
         uint32 level = _spellInfo->SpellLevel;
         if (target && _spellInfo->HasAttribute(SPELL_ATTR8_USE_TARGETS_LEVEL_FOR_SPELL_SCALING))
