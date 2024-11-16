@@ -287,6 +287,7 @@ bool Pet::LoadPetFromDB(Player* owner, uint32 petEntry, uint32 petnumber, bool c
     {
         case SUMMON_PET:
             petlevel = owner->GetLevel();
+            SetClass(CLASS_MAGE);
             ReplaceAllUnitFlags(UNIT_FLAG_PLAYER_CONTROLLED); // this enables popup window (pet dismiss, cancel)
             break;
         case HUNTER_PET:
@@ -813,6 +814,8 @@ bool Guardian::InitStatsForLevel(uint8 petlevel)
     {
         if (GetOwner()->GetClass() == CLASS_WARLOCK
             || GetOwner()->GetClass() == CLASS_SHAMAN        // Fire Elemental
+            || GetOwner()->GetClass() == CLASS_MAGE
+            || GetOwner()->GetClass() == CLASS_PRIEST
             || GetOwner()->GetClass() == CLASS_DEATH_KNIGHT) // Risen Ghoul
         {
             petType = SUMMON_PET;
