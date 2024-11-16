@@ -94,8 +94,7 @@ namespace Trainer
             sendSpellVisual = false;
         }
 
-        //float reputationDiscount = player->GetReputationPriceDiscount(npc);
-        float reputationDiscount = 1.0f;
+        float reputationDiscount = player->GetReputationPriceDiscount(npc);
 
         int64 moneyCost = int64(trainerSpell->MoneyCost * reputationDiscount);
         if (!player->HasEnoughMoney(moneyCost))
@@ -108,8 +107,7 @@ namespace Trainer
 
         if (sendSpellVisual)
         {
-            // TODO: FIX crash
-            //npc->SendPlaySpellVisualKit(179, 0, 0);     // 53 SpellCastDirected
+            npc->SendPlaySpellVisualKit(179, 0, 0);     // 53 SpellCastDirected
             player->SendPlaySpellVisualKit(362, 1, 0);  // 113 EmoteSalute
         }
 
