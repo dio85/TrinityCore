@@ -149,6 +149,7 @@ namespace WorldPackets
         {
             ObjectGuid CastID;
             int32 SpellID = 0;
+            int32 SpellXSpellVisualID = 0;
             SpellCastVisual Visual;
             uint16 Flags = 0;
             uint32 ActiveFlags = 0;
@@ -1051,6 +1052,45 @@ namespace WorldPackets
             CancelQueuedSpell(WorldPacket&& packet) : ClientPacket(CMSG_CANCEL_QUEUED_SPELL, std::move(packet)) { }
 
             void Read() override { }
+        };
+
+        class ShowTradeSkill final : public ClientPacket
+        {
+        public:
+            ShowTradeSkill(WorldPacket&& packet) : ClientPacket(CMSG_SHOW_TRADE_SKILL, std::move(packet)) { }
+
+            void Read() override;
+
+            ObjectGuid PlayerGUID;
+            int32 SpellID = 0;
+            int32 SkillLineID = 0;
+        };
+
+        class ShowTradeSkillResponse final : public ServerPacket
+        {
+        public:
+            ShowTradeSkillResponse() : ServerPacket(SMSG_SHOW_TRADE_SKILL_RESPONSE, 16 + 4 + 12) { }
+
+            WorldPacket const* Write() override;
+
+            ObjectGuid PlayerGUID;
+            uint32 SpellId = 0;
+            std::vector<int32> SkillLineIDs;
+            std::vector<int32> SkillRanks;
+            std::vector<int32> SkillMaxRanks;
+            std::vector<int32> KnownAbilitySpellIDs;
+        };
+
+        class UpdateSpellVisual final : public ClientPacket
+        {
+        public:
+            UpdateSpellVisual(WorldPacket&& packet) : ClientPacket(CMSG_UPDATE_SPELL_VISUAL, std::move(packet)) { }
+
+            void Read() override;
+
+            int32 SpellID = 0;
+            int32 SpellXSpellVisualId = 0;
+            ObjectGuid TargetGUID;
         };
 
         ByteBuffer& operator>>(ByteBuffer& buffer, SpellCastRequest& request);

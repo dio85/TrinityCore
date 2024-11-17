@@ -665,6 +665,8 @@ namespace WorldPackets
         class MissileTrajectoryCollision;
         class UpdateMissileTrajectory;
         class KeyboundOverride;
+        class ShowTradeSkill;
+        class UpdateSpellVisual;
     }
 
     namespace Talent
@@ -1642,6 +1644,9 @@ class TC_GAME_API WorldSession
         void HandleConversationLineStarted(WorldPackets::Misc::ConversationLineStarted& conversationLineStarted);
         void HandleKeyboundOverride(WorldPackets::Spells::KeyboundOverride& keyboundOverride);
         void HandleQueryCountdownTimer(WorldPackets::Misc::QueryCountdownTimer& queryCountdownTimer);
+        void HandleShowTradeSkillOpcode(WorldPackets::Spells::ShowTradeSkill& showTradeSkill);
+
+        void HandleUpdateSpellVisualOpcode(WorldPackets::Spells::UpdateSpellVisual& packet);
 
         // Adventure Map
         void HandleCheckIsAdventureMapPoiValid(WorldPackets::AdventureMap::CheckIsAdventureMapPoiValid& CheckIsAdventureMapPoiValid);

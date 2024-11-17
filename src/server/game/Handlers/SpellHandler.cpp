@@ -554,3 +554,17 @@ void WorldSession::HandleKeyboundOverride(WorldPackets::Spells::KeyboundOverride
 
     player->CastSpell(player, spellKeyboundOverride->Data);
 }
+
+void WorldSession::HandleShowTradeSkillOpcode(WorldPackets::Spells::ShowTradeSkill& showTradeSkill)
+{
+
+}
+
+void WorldSession::HandleUpdateSpellVisualOpcode(WorldPackets::Spells::UpdateSpellVisual& packet)
+{
+    if (Aura* aura = GetPlayer()->GetAura(packet.SpellID))
+    {
+        aura->SetSpellXSpellVisualId(packet.SpellXSpellVisualId);
+        aura->SetNeedClientUpdateForTargets();
+    }
+}
