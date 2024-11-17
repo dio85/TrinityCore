@@ -353,3 +353,9 @@ WorldPacket const* WorldPackets::LFG::LFGTeleportDenied::Write()
 
     return &_worldPacket;
 }
+
+void WorldPackets::LFG::CompleteReadyCheck::Read()
+{
+    _worldPacket >> PartyIndex;
+    IsReady = _worldPacket.ReadBit();
+}

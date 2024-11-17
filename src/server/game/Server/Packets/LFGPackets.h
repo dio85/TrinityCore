@@ -411,6 +411,17 @@ namespace WorldPackets
 
             lfg::LfgTeleportResult Reason;
         };
+
+        class CompleteReadyCheck final : public ClientPacket
+        {
+        public:
+            CompleteReadyCheck(WorldPacket&& packet) : ClientPacket(CMSG_DF_READY_CHECK_RESPONSE, std::move(packet)) { }
+
+            void Read() override;
+
+            uint8 PartyIndex = 0;
+            bool IsReady = false;
+        };
     }
 }
 

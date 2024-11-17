@@ -518,3 +518,6 @@ void WorldSession::SendLfgTeleportError(lfg::LfgTeleportResult err)
         GetPlayerInfo(), err);
     SendPacket(WorldPackets::LFG::LFGTeleportDenied(err).Write());
 }
+
+void WorldSession::HandleLfgCompleteReadyCheck(WorldPackets::LFG::CompleteReadyCheck& /*packet*/)
+{ }
