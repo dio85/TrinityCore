@@ -85,10 +85,10 @@ WorldPacket const* WorldPackets::Petition::ServerPetitionShowList::Write()
 
 void WorldPackets::Petition::PetitionBuy::Read()
 {
-    uint32 titleLen = _worldPacket.ReadBits(7);
+    uint32 titleLen = _worldPacket.ReadBits(8);
 
     _worldPacket >> Unit;
-    _worldPacket >> Unused910;
+    _worldPacket >> Index;
     Title = _worldPacket.ReadString(titleLen);
 }
 
