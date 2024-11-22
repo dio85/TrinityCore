@@ -50,7 +50,7 @@ namespace WorldPackets
 
             WorldPacket const* Write() override;
 
-            int32 SceneInstanceID = 0;
+            uint32 SceneInstanceID = 0;
         };
 
         class SceneTriggerEvent final : public ClientPacket
@@ -72,6 +72,7 @@ namespace WorldPackets
             void Read() override;
 
             uint32 SceneInstanceID = 0;
+            uint32 TimePassed = 0;
         };
 
         class ScenePlaybackCanceled final : public ClientPacket
@@ -82,6 +83,7 @@ namespace WorldPackets
             void Read() override;
 
             uint32 SceneInstanceID = 0;
+            uint32 TimePassed = 0;
         };
     }
 }
