@@ -4019,6 +4019,16 @@ void SpellMgr::LoadSpellInfoCorrections()
         spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(6);  // 100yd
     });
 
+    // Death and Decay (target increase)
+    ApplySpellFix({ 188290 }, [](SpellInfo* spellInfo)
+    {
+        // Change SpellClassMask to exclude 49020 and only keep its triggered spells
+        ApplySpellEffectFix(spellInfo, EFFECT_3, [](SpellEffectInfo* spellEffectInfo)
+        {
+            spellEffectInfo->SpellClassMask.Set(0x80, 0, 0, 0x8000);
+        });
+    });
+
     // Chrono Shift (enemy slow part)
     ApplySpellFix({ 236299 }, [](SpellInfo* spellInfo)
     {
@@ -5053,6 +5063,12 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 404468 }, [](SpellInfo* spellInfo)
     {
         spellInfo->AttributesCu |= SPELL_ATTR0_CU_AURA_CANNOT_BE_SAVED;
+    });
+
+    // Eye Beam
+    ApplySpellFix({ 198030 }, [](SpellInfo* spellInfo)
+    {
+        spellInfo->_LoadSqrtTargetLimit(5, 0, {}, {});
     });
 
     for (SpellInfo const& s : mSpellInfoMap)
