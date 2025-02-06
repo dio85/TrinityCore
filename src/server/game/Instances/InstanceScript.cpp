@@ -746,8 +746,8 @@ void InstanceScript::StartChallengeMode(uint8 modeid, uint8 level, uint8 affix1,
      //    entranceLocation.Relocate(areaTrigger->target_X, areaTrigger->target_Y, areaTrigger->target_Z, areaTrigger->target_Orientation);
     // DoNearTeleportPlayers(entranceLocation);
 
-    if (_challengeModeDoorPosition.has_value())
-        instance->SummonGameObject(GOB_CHALLENGER_DOOR, *_challengeModeDoorPosition, QuaternionData(), WEEK);
+    /*if (_challengeModeDoorPosition.has_value())
+        instance->SummonGameObject(GOB_CHALLENGER_DOOR, *_challengeModeDoorPosition, QuaternionData(), WEEK);*/ // TODO: Flux
 
     ShowChallengeDoor();
     AfterChallengeModeStarted();

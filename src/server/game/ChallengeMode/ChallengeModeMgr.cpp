@@ -31,6 +31,7 @@
 #include "WorldSession.h"
 #include <sstream>
 #include <ObjectAccessor.h>
+#include <MapUtils.h>
 
 
 ChallengeModeMgr* ChallengeModeMgr::instance()

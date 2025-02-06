@@ -26,6 +26,7 @@
 #include "SocialMgr.h"
 #include "SocialPackets.h"
 #include <LFGListPackets.h>
+#include <MapUtils.h>
 
 LFGListMgr* LFGListMgr::instance()
 {

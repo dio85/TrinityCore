@@ -26,6 +26,7 @@
 #include "LFGListPackets.h"
 #include "LFGList.h"
 #include "GameTime.h"
+#include <MapUtils.h>
 
 
 LFGListEntry::LFGListApplicationEntry::LFGListApplicationEntry(ObjectGuid::LowType playerGuid, LFGListEntry* owner)

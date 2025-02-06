@@ -28,6 +28,9 @@
 #include "Containers.h"
 #include "GridNotifiersImpl.h"
 #include <ItemBonusMgr.h>
+#include <MapUtils.h>
+#include "QueryPackets.h"
+
 using namespace WorldPackets::Quest;
 
 WorldQuestMgr::WorldQuestMgr()
@@ -404,7 +407,7 @@ void WorldQuestMgr::DisableQuest(ActiveWorldQuest* activeWorldQuest, bool delete
             for (auto criteria : GetCriteriasForQuest(quest->GetQuestId()))
             {
                 player->UpdateCriteria(CriteriaType::CompleteQuest, criteria->ID);
-                player->GetQuestObjectiveCriteriaMgr()->ResetCriteriaTree(criteria->ModifierTreeId);
+                //player->GetQuestObjectiveCriteriaMgr()->ResetCriteriaTree(criteria->ModifierTreeId); TODO: Flux
             }
         }
     }
@@ -603,7 +606,7 @@ void WorldQuestMgr::BuildPacket(Player* player, WorldPackets::Quest::WorldQuestU
     }
 }
 
-void WorldQuestMgr::BuildRewardPacket(Player* player, uint32 questId, uint32 treasurePickerId, WorldPackets::Quest::QueryQuestRewardResponse& packet)
+void WorldQuestMgr::BuildRewardPacket(Player* player, uint32 questId, uint32 treasurePickerId, WorldPackets::Query::TreasurePickerResponse& packet)
 {
     ActiveWorldQuest const* activeWorldQuest = GetActiveWorldQuest(questId);
     if (!activeWorldQuest)
@@ -622,27 +625,27 @@ void WorldQuestMgr::BuildRewardPacket(Player* player, uint32 questId, uint32 tre
         {
         case WORLD_QUEST_REWARD_ITEM:
         {
-            WorldPackets::Quest::QueryQuestRewardResponse::ItemReward itemReward;
+            WorldPackets::Query::TreasurePickItem itemReward;
             itemReward.Item.ItemID = worldQuestReward->RewardId;
             itemReward.Item.ItemBonus = WorldPackets::Item::ItemBonuses();
             itemReward.Item.ItemBonus->Context = (ItemContext)worldQuestReward->RewardContext;
             itemReward.Item.ItemBonus->BonusListIDs = WorldPackets::Item::ItemBonuses().BonusListIDs;
-            WorldPackets::Quest::QueryQuestRewardResponse itemRew;
+            WorldPackets::Query::TreasurePickItem itemRew;
             itemRew.Quantity = worldQuestReward->RewardCount;
-            packet.ItemRewards.push_back(itemReward);
+            packet.Pick.Items.push_back(itemReward);
             break;
         }
         case WORLD_QUEST_REWARD_CURRENCY:
         {
-            WorldPackets::Quest::QueryQuestRewardResponse::CurrencyReward currencyReward;
+            WorldPackets::Query::TreasurePickCurrency currencyReward;
             currencyReward.CurrencyID = worldQuestReward->RewardId;
-            currencyReward.Amount = worldQuestReward->RewardCount;
-            packet.CurrencyRewards.push_back(currencyReward);
+            currencyReward.Quantity = worldQuestReward->RewardCount;
+            packet.Pick.Currencies.push_back(currencyReward);
             break;
         }
         case WORLD_QUEST_REWARD_GOLD:
         {
-            packet.MoneyReward = worldQuestReward->RewardCount;
+            packet.Pick.Money = worldQuestReward->RewardCount;
             break;
         }
         default:
@@ -652,9 +655,9 @@ void WorldQuestMgr::BuildRewardPacket(Player* player, uint32 questId, uint32 tre
 
     for (auto rewP : sRewardPackStore)
     {
-        WorldPackets::Quest::QueryQuestRewardResponse response;
+        WorldPackets::Query::TreasurePickerResponse response;
         response.TreasurePickerID = rewP->TreasurePickerID;
-        response.MoneyReward = rewP->Money;
+        response.Pick.Money = rewP->Money;
     }
 
 }
