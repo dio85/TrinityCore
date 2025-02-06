@@ -21,6 +21,7 @@
 #include "AreaTriggerAI.h"
 #include "Containers.h"
 #include "Conversation.h"
+#include "ConversationAI.h"
 #include "CreatureAIImpl.h"
 #include "CreatureGroups.h"
 #include "MotionMaster.h"
@@ -471,12 +472,12 @@ struct at_human_heritage_lions_pride_inn_basement_enter : AreaTriggerAI
 };
 
 // 20342 - Conversation
-class conversation_an_unlikely_informant : public ConversationScript
+class conversation_an_unlikely_informant : public ConversationAI
 {
 public:
-    conversation_an_unlikely_informant() : ConversationScript("conversation_an_unlikely_informant") { }
+    conversation_an_unlikely_informant(Conversation* conversation) : ConversationAI(conversation) { }
 
-    void OnConversationCreate(Conversation* conversation, Unit* creator) override
+    void OnCreate(Unit* creator) override
     {
         Creature* mathiasObject = GetClosestCreatureWithOptions(creator, 15.0f, { .CreatureId = NPC_MATHIAS_SHAW, .IgnorePhases = true });
         Creature* vanessaObject = GetClosestCreatureWithOptions(creator, 15.0f, { .CreatureId = NPC_VANESSA_VANCLEEF, .IgnorePhases = true });
@@ -497,7 +498,7 @@ public:
         conversation->Start();
     }
 
-    void OnConversationStart(Conversation* conversation) override
+    void OnStart() override
     {
         LocaleConstant privateOwnerLocale = conversation->GetPrivateObjectOwnerLocale();
 
@@ -513,7 +514,7 @@ public:
         _events.ScheduleEvent(EVENT_MATHIAS_CLONE_DESPAWN, conversation->GetLastLineEndTime(privateOwnerLocale));
     }
 
-    void OnConversationUpdate(Conversation* conversation, uint32 diff) override
+    void OnUpdate(uint32 diff) override
     {
         _events.Update(diff);
 
@@ -584,12 +585,12 @@ private:
 };
 
 // 20387 - Conversation
-class conversation_the_new_classington_estate : public ConversationScript
+class conversation_the_new_classington_estate : public ConversationAI
 {
 public:
-    conversation_the_new_classington_estate() : ConversationScript("conversation_the_new_classington_estate") { }
+    conversation_the_new_classington_estate(Conversation* conversation) : ConversationAI(conversation) { }
 
-    void OnConversationCreate(Conversation* conversation, Unit* creator) override
+    void OnCreate(Unit* creator) override
     {
         Creature* mathiasObject = GetClosestCreatureWithOptions(creator, 15.0f, { .CreatureId = NPC_MATHIAS_SHAW, .IgnorePhases = true });
         Creature* vanessaObject = GetClosestCreatureWithOptions(creator, 15.0f, { .CreatureId = NPC_VANESSA_VANCLEEF, .IgnorePhases = true });
@@ -610,7 +611,7 @@ public:
         conversation->Start();
     }
 
-    void OnConversationStart(Conversation* conversation) override
+    void OnStart() override
     {
         LocaleConstant privateOwnerLocale = conversation->GetPrivateObjectOwnerLocale();
 
@@ -624,7 +625,7 @@ public:
         _events.ScheduleEvent(EVENT_MATHIAS_CLONE_DESPAWN, conversation->GetLastLineEndTime(privateOwnerLocale));
     }
 
-    void OnConversationUpdate(Conversation* conversation, uint32 diff) override
+    void OnUpdate(uint32 diff) override
     {
         _events.Update(diff);
 
@@ -722,8 +723,8 @@ void AddSC_elwynn_forest()
     RegisterSpellScript(spell_stealth_vanessa_human_heritage);
 
     // Conversation
-    new conversation_an_unlikely_informant();
-    new conversation_the_new_classington_estate();
+    RegisterConversationAI(conversation_an_unlikely_informant);
+    RegisterConversationAI(conversation_the_new_classington_estate);
 
     // AreaTrigger
     RegisterAreaTriggerAI(at_human_heritage_lions_pride_inn_basement_enter);

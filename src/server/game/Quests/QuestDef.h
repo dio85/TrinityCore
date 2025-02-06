@@ -28,6 +28,7 @@
 #include "UniqueTrackablePtr.h"
 #include "WorldPacket.h"
 #include <bitset>
+#include <unordered_set>
 #include <vector>
 
 class Player;
@@ -204,6 +205,11 @@ enum class QuestGiverStatus : uint64
 };
 
 DEFINE_ENUM_FLAG(QuestGiverStatus);
+
+inline constexpr QuestGiverStatus QuestGiverStatusFutureMask = QuestGiverStatus::Future
+    | QuestGiverStatus::FutureJourneyQuest
+    | QuestGiverStatus::FutureLegendaryQuest
+    | QuestGiverStatus::FutureImportantQuest;
 
 enum QuestFlags : uint32
 {
@@ -884,6 +890,7 @@ struct QuestStatusData
     uint32 Timer = 0;
     std::vector<int32> ObjectiveData;
     bool Explored = false;
+    std::unordered_set<std::pair<int8, uint32>> SpawnTrackingList;
 };
 
 #endif
