@@ -1927,7 +1927,7 @@ LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
     uint8 level = player->GetLevel();
     uint8 expansion = player->GetSession()->GetExpansion();
     uint8 playerSelectedExpansion = Player::GetChromieTimeExpansionLevel(Player::GetChromieTime(player));
-    uint32 contentTuningReplacementConditionMask = player->m_playerData->CtrOptions->ContentTuningConditionMask;
+    uint32 contentTuningReplacementConditionMask = player->m_playerData->CtrOptions->ChromieTimeExpansionMask;
     bool denyJoin = !player->GetSession()->HasPermission(rbac::RBAC_PERM_JOIN_DUNGEON_FINDER);
 
     for (LFGDungeonsEntry const* dungeon : sLFGDungeonsStore)
@@ -1951,9 +1951,9 @@ LfgLockMap LFGMgr::GetLockedDungeons(ObjectGuid guid)
             {
                 return lfg::LFG_LOCKSTATUS_INSUFFICIENT_EXPANSION;
             }
-            if (sInstanceLockMgr.FindActiveInstanceLock(guid, { dungeon->map, Difficulty(dungeon->difficulty) }))
-                return LFG_LOCKSTATUS_RAID_LOCKED;
-            if (Optional<ContentTuningLevels> levels = sDB2Manager.GetContentTuningData(dungeon->contentTuningId, player->m_playerData->CtrOptions->ConditionalFlags))
+            /*if (sInstanceLockMgr.FindActiveInstanceLock(guid, {dungeon->map, Difficulty(dungeon->difficulty)}))
+                return LFG_LOCKSTATUS_RAID_LOCKED;*/ // TODO: Flux
+            if (Optional<ContentTuningLevels> levels = sDB2Manager.GetContentTuningData(dungeon->ContentTuningID, player->m_playerData->CtrOptions->ConditionalFlags))
             {
                 if (levels->MinLevel > level)
                     return LFG_LOCKSTATUS_TOO_LOW_LEVEL;

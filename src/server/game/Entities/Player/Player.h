@@ -3087,10 +3087,10 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         std::string GetChromieTimeName(Player* player);
         static uint8 GetChromieTimeExpansionLevel(uint8 chromieTime);
 
-        void SetChromieTimeExpansion(uint8 chromieTimeExpansion, uint16 expansionLevelMask)
+        void SetChromieTimeExpansion(uint8 chromieTimeExpansion, uint16 chromieTimeExpansionMask)
         {
             SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::UiChromieTimeExpansionID), chromieTimeExpansion);
-            SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::CtrOptions).ModifyValue(&UF::CTROptions::ExpansionLevelMask), expansionLevelMask);
+            SetUpdateFieldValue(m_values.ModifyValue(&Player::m_playerData).ModifyValue(&UF::PlayerData::CtrOptions).ModifyValue(&UF::CTROptions::ChromieTimeExpansionMask), chromieTimeExpansionMask);
         }
 
     protected:
