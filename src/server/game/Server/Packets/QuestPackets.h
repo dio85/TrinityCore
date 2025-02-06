@@ -869,58 +869,7 @@ namespace WorldPackets
             std::vector<uint32> QuestLineIDs;
         };
 
-        class QueryTreasurePicker final : public ClientPacket
-        {
-        public:
-            QueryTreasurePicker(WorldPacket&& packet) : ClientPacket(CMSG_QUERY_TREASURE_PICKER, std::move(packet)) { }
-
-            void Read() override;
-
-            uint32 QuestID = 0;
-            int32 TreasurePickerID = 0;
-        };
-
-        class QueryQuestRewardResponse final : public ServerPacket
-        {
-        public:
-            QueryQuestRewardResponse() : ServerPacket(SMSG_TREASURE_PICKER_RESPONSE) { }
-
-            WorldPacket const* Write() override;
-
-            struct CurrencyReward
-            {
-                uint32 CurrencyID = 0;
-                uint32 Amount = 0;
-                uint32 CurrencyCount = 0;
-            };
-
-            struct ItemReward
-            {
-                WorldPackets::Item::ItemInstance Item;
-                bool HasItemBonus = false;
-                uint32 ContentTuningID = 0;
-                uint32 Contex = 0;
-            };
-
-            struct BonusReward
-            {
-                uint64 BonusMoney = 0;
-                bool HasBonus = false;
-                std::vector<CurrencyReward> CurrencyRewards;
-                std::vector<ItemReward> ItemRewards;
-            };
-
-            uint32 QuestID = 0;
-            uint32 TreasurePickerID = 0;
-            uint32 Quantity = 0;
-            uint32 CurrencyCount = 0;
-            uint64 MoneyReward = 0;
-            uint64 BonusCount = 0;
-            uint32 Flags = 0;
-            std::vector<CurrencyReward> CurrencyRewards;
-            std::vector<ItemReward> ItemRewards;
-            std::vector<BonusReward> BonusRewards;
-        };
+        
 
         class IsQuestCompleteResponse final : public ServerPacket
         {

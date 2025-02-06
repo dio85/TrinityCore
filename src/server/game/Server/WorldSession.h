@@ -714,7 +714,6 @@ namespace WorldPackets
         class QuestGiverHello;
         class QueryAdventureMapPOI;
         class QueryQuestInfo;
-        class QueryTreasurePicker;
         class UiMapQuestLinesRequest;
         class RequestAreaPoiUpdate;
         class QuestGiverChooseReward;

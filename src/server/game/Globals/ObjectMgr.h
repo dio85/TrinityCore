@@ -1301,7 +1301,6 @@ class TC_GAME_API ObjectMgr
 
         VehicleTemplate const* GetVehicleTemplate(Vehicle* veh) const;
         VehicleAccessoryList const* GetVehicleAccessoryList(Vehicle* veh) const;
-        DungeonEncounterList const* GetDungeonEncounterList(uint32 mapId, Difficulty difficulty) const;
 
         void LoadQuests();
         void LoadQuestStartersAndEnders();
@@ -1398,7 +1397,6 @@ class TC_GAME_API ObjectMgr
         void LoadGossipMenuItemsLocales();
         void LoadPointOfInterestLocales();
         void LoadInstanceTemplate();
-        void LoadInstanceEncounters();
         void LoadMailLevelRewards();
         void LoadVehicleTemplateAccessories();
         void LoadVehicleTemplate();
@@ -1860,8 +1858,6 @@ class TC_GAME_API ObjectMgr
         std::unordered_map<uint32, AreaTriggerPolygon> _areaTriggerPolygons;
         AccessRequirementContainer _accessRequirementStore;
         std::unordered_map<uint32, WorldSafeLocsEntry> _worldSafeLocs;
-
-        DungeonEncounterContainer _dungeonEncounterStore;
 
         EventContainer _eventStore;
         EventScriptContainer _eventScriptStore;

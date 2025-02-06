@@ -920,46 +920,6 @@ void UiMapQuestLinesRequest::Read()
     _worldPacket >> UiMapID;
 }
 
-void WorldPackets::Quest::QueryTreasurePicker::Read()
-{
-    _worldPacket >> QuestID;
-    _worldPacket >> TreasurePickerID;
-}
-
-WorldPacket const* QueryQuestRewardResponse::Write()
-{
-    _worldPacket << QuestID;
-    _worldPacket << TreasurePickerID;
-    _worldPacket << Quantity;
-    _worldPacket << CurrencyCount;
-    _worldPacket << MoneyReward;
-    _worldPacket << BonusCount;
-    _worldPacket << Flags;
-    _worldPacket << uint32(BonusRewards.size());
-
-    for (auto& currency : CurrencyRewards)
-    {
-        _worldPacket << currency.CurrencyID;
-        _worldPacket << currency.Amount;
-        _worldPacket << currency.CurrencyCount;
-    }
-
-    for (auto& item : ItemRewards)
-    {
-        _worldPacket << item.Item;
-        _worldPacket.WriteBit(item.HasItemBonus);
-        _worldPacket << item.ContentTuningID;
-        _worldPacket << item.Contex;
-    }
-
-    for (auto const& bonus : BonusRewards)
-    {
-        _worldPacket << bonus.ItemRewards.size();
-        _worldPacket << bonus.CurrencyRewards.size();
-        _worldPacket << bonus.BonusMoney;
-        _worldPacket << bonus.HasBonus;
-    }
-
 ByteBuffer& operator>>(ByteBuffer& data, WorldPackets::Quest::SpawnTrackingRequestInfo& spawnTrackingRequestInfo)
 {
     data >> spawnTrackingRequestInfo.ObjectTypeMask;
@@ -1011,6 +971,8 @@ WorldPacket const* WorldPackets::Quest::IsQuestCompleteResponse::Write()
 WorldPacket const* ShowQuestCompletionText::Write()
 {
     _worldPacket.WriteBit(ShowQuestComplete);
+
+    return &_worldPacket;
 }
 
 WorldPacket const* ForceSpawnTrackingUpdate::Write()
