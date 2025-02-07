@@ -2643,7 +2643,7 @@ struct GuildPerkSpellsLoadInfo
 
 struct GroupFinderActivityLoadInfo
 {
-    static constexpr DB2FieldMeta Fields[16] =
+    static constexpr DB2FieldMeta Fields[20] =
     {
         { false, FT_INT, "ID" },
         { false, FT_STRING, "FullName" },
@@ -2659,11 +2659,15 @@ struct GroupFinderActivityLoadInfo
         { false, FT_SHORT, "AreaID" },
         { false, FT_BYTE, "MaxPlayers" },
         { false, FT_BYTE, "DisplayType" },
+        { true, FT_INT, "Field110757361013" },
+        { true, FT_INT, "Field110757361014" },
+        { true, FT_INT,"Field110757361015" },
+        { true, FT_INT, "Field110757361016" },
         { true, FT_INT, "OverrideContentTuningID" },
-        { true, FT_INT, "MapChallengeModeID"}
+        { true, FT_INT, "MapChallengeModeID"},
     };
 
-    static constexpr DB2LoadInfo Instance{ Fields, 16, &GroupFinderActivityMeta::Instance, HOTFIX_SEL_GROUP_FINDER_ACTIVITY };
+    static constexpr DB2LoadInfo Instance{ Fields, 20, &GroupFinderActivityMeta::Instance, HOTFIX_SEL_GROUP_FINDER_ACTIVITY };
 };
 
 struct GroupFinderActivityGrpLoadInfo

@@ -4068,7 +4068,7 @@ void World::setWorldState(uint32 index, uint32 value)
         if (it->second == value)
             return;
 
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_WORLDSTATE);
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_WORLD_STATE);
 
         stmt->setUInt32(0, uint32(value));
         stmt->setUInt32(1, index);
@@ -4077,7 +4077,7 @@ void World::setWorldState(uint32 index, uint32 value)
     }
     else
     {
-        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_WORLDSTATE);
+        CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_INS_WORLD_STATE);
 
         stmt->setUInt32(0, index);
         stmt->setUInt32(1, uint32(value));

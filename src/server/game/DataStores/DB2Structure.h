@@ -2189,6 +2189,10 @@ struct GroupFinderActivityEntry
     uint16 AreaID;
     uint8 MaxPlayers;
     uint8 DisplayType;
+    int32 Field110757361013;
+    int32 Field110757361014;
+    int32 Field110757361015;
+    int32 Field110757361016;
     int32 OverrideContentTuningID;
     int32 MapChallengeModeID;
 };
