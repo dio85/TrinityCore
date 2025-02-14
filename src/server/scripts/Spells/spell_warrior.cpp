@@ -25,6 +25,14 @@
 #include "SpellScript.h"
 #include "Unit.h"
 
+enum WarriorSpells
+{
+    SPELL_WARRIOR_CHARGE_STUN                   = 7922,
+    SPELL_WARRIOR_CHARGE_ENERGIZE               = 34846,
+    SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_BUFF    = 65156,
+    SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_TALENT  = 64976
+};
+
 namespace Scripts::Spells::Warrior
 {
     // 78 - Heroic Strike
