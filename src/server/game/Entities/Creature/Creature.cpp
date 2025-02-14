@@ -24,8 +24,8 @@
 #include "CreatureAI.h"
 #include "CreatureAISelector.h"
 #include "CreatureGroups.h"
-#include "DatabaseEnv.h"
 #include "DB2Stores.h"
+#include "DatabaseEnv.h"
 #include "Formulas.h"
 #include "GameEventMgr.h"
 #include "GameTime.h"
@@ -36,6 +36,7 @@
 #include "Loot.h"
 #include "LootMgr.h"
 #include "MapManager.h"
+#include "MapUtils.h"
 #include "MiscPackets.h"
 #include "MotionMaster.h"
 #include "ObjectAccessor.h"
@@ -321,7 +322,7 @@ Creature::Creature(bool isWorldObject) : Unit(isWorldObject), MapObject(), m_Pla
     m_AlreadyCallAssistance(false), m_AlreadySearchedAssistance(false), m_cannotReachTarget(false), m_cannotReachTimer(0),
     m_meleeDamageSchoolMask(SPELL_SCHOOL_MASK_NORMAL), m_originalEntry(0), m_homePosition(), m_transportHomePosition(),
     m_creatureInfo(nullptr), m_creatureData(nullptr), m_creatureDifficulty(nullptr), m_stringIds(), _waypointPathId(0), _currentWaypointNodeInfo(0, 0),
-    m_formation(nullptr), m_triggerJustAppeared(true), m_respawnCompatibilityMode(false), _lastDamagedTime(0),
+    m_formation(nullptr), m_triggerJustAppeared(true), m_respawnCompatibilityMode(false), _aggroGracePeriodExpired(false), _lastDamagedTime(0),
     _regenerateHealth(true), _creatureImmunitiesId(0), _gossipMenuId(0), _sparringHealthPct(0)
 {
     for (uint8 i = 0; i < MAX_CREATURE_SPELLS; ++i)
@@ -343,7 +344,7 @@ void Creature::AddToWorld()
     ///- Register the creature for guid lookup
     if (!IsInWorld())
     {
-        GetMap()->GetObjectsStore().Insert<Creature>(GetGUID(), this);
+        GetMap()->GetObjectsStore().Insert<Creature>(this);
         if (m_spawnId)
             GetMap()->GetCreatureBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
 
@@ -372,7 +373,7 @@ void Creature::RemoveFromWorld()
 
         if (m_spawnId)
             Trinity::Containers::MultimapErasePair(GetMap()->GetCreatureBySpawnIdStore(), m_spawnId, this);
-        GetMap()->GetObjectsStore().Remove<Creature>(GetGUID());
+        GetMap()->GetObjectsStore().Remove<Creature>(this);
     }
 }
 
@@ -877,6 +878,16 @@ void Creature::Heartbeat()
 
     // Creatures with CREATURE_STATIC_FLAG_2_FORCE_PARTY_MEMBERS_INTO_COMBAT periodically force party members into combat
     ForcePartyMembersIntoCombat();
+
+    // creatures should only attack surroundings initially after heartbeat has passed or until attacked
+    if (!_aggroGracePeriodExpired)
+    {
+        _aggroGracePeriodExpired = true;
+
+        // trigger MoveInLineOfSight
+        Trinity::CreatureAggroGracePeriodExpiredNotifier notifier(*this);
+        Cell::VisitAllObjects(this, notifier, GetVisibilityRange());
+    }
 }
 
 void Creature::RegenerateHealth()
@@ -1287,7 +1298,7 @@ void Creature::SetTappedBy(Unit const* unit, bool withGroup)
         return;
     }
 
-    if (m_tapList.size() >= CREATURE_TAPPERS_SOFT_CAP)
+    if (m_tapList.size() >= CREATURE_TAPPERS_SOFT_CAP && !CanBeMultiTapped())
         return;
 
     if (unit->GetTypeId() != TYPEID_PLAYER && !unit->IsVehicle())
@@ -1304,7 +1315,7 @@ void Creature::SetTappedBy(Unit const* unit, bool withGroup)
                 if (GetMap()->IsRaid() || group->SameSubGroup(player, itr->GetSource()))
                     m_tapList.insert(itr->GetSource()->GetGUID());
 
-    if (m_tapList.size() >= CREATURE_TAPPERS_SOFT_CAP)
+    if (m_tapList.size() >= CREATURE_TAPPERS_SOFT_CAP && !CanBeMultiTapped())
         SetDynamicFlag(UNIT_DYNFLAG_TAPPED);
 }
 
@@ -2256,6 +2267,7 @@ void Creature::Respawn(bool force)
                 ai->Reset();
 
             m_triggerJustAppeared = true;
+            _aggroGracePeriodExpired = false;
 
             uint32 poolid = GetCreatureData() ? GetCreatureData()->poolId : 0;
             if (poolid)
@@ -3430,6 +3442,8 @@ bool Creature::IsEngaged() const
 void Creature::AtEngage(Unit* target)
 {
     Unit::AtEngage(target);
+
+    _aggroGracePeriodExpired = true;
 
     GetThreatManager().ResetUpdateTimer();
 

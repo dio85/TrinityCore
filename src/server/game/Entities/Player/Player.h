@@ -393,7 +393,6 @@ struct Areas
 constexpr uint8 MAX_RUNES = 6;
 
 constexpr float RUNE_BASE_COOLDOWN = 1.0f;
-constexpr float RUNE_MISS_COOLDOWN = 0.15f; // cooldown applied on runes when the spell misses
 
 enum class RuneType : uint8
 {
@@ -1481,7 +1480,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         bool IsTwoHandUsed() const;
         bool IsUsingTwoHandedWeaponInOneHand() const;
         void SendNewItem(Item* item, uint32 quantity, bool received, bool created, bool broadcast = false, uint32 dungeonEncounterId = 0);
-        bool BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uint32 item, uint8 count, uint8 bag, uint8 slot);
+        bool BuyItemFromVendorSlot(ObjectGuid vendorguid, uint32 vendorslot, uint32 item, uint32 count, uint8 bag, uint8 slot);
         bool BuyCurrencyFromVendorSlot(ObjectGuid vendorGuid, uint32 vendorSlot, uint32 currency, uint32 count);
         bool _StoreOrEquipNewItem(uint32 vendorslot, uint32 item, uint8 count, uint8 bag, uint8 slot, int64 price, ItemTemplate const* pProto, Creature* pVendor, VendorItem const* crItem, bool bStore);
 
@@ -1618,14 +1617,15 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void SetQuestSlotState(uint16 slot, uint32 state);
         void RemoveQuestSlotState(uint16 slot, uint32 state);
         void SetQuestSlotEndTime(uint16 slot, time_t endTime);
-        void SetQuestCompletedBit(uint32 questBit, bool completed);
+        bool IsQuestCompletedBitSet(uint32 questId) const;
+        void SetQuestCompletedBit(uint32 questId, bool completed);
 
         uint16 GetReqKillOrCastCurrentCount(uint32 quest_id, int32 entry) const;
         void AreaExploredOrEventHappens(uint32 questId);
         void GroupEventHappens(uint32 questId, WorldObject const* pEventObject);
         void ItemAddedQuestCheck(uint32 entry, uint32 count);
         void ItemRemovedQuestCheck(uint32 entry, uint32 count);
-        void KilledMonster(CreatureTemplate const* cInfo, ObjectGuid guid);
+        void KilledMonster(Creature const* creature);
         void KilledMonsterCredit(uint32 entry, ObjectGuid guid = ObjectGuid::Empty);
         void KilledPlayerCredit(ObjectGuid victimGuid);
         void KillCreditGO(uint32 entry, ObjectGuid guid = ObjectGuid::Empty);
@@ -2604,7 +2604,13 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         RuneType GetCurrentRune(uint8 index) const { return RuneType(m_runes->_Runes[index].CurrentRune); }
         Powers GetPowerTypeForBaseRune(uint8 index) const;
         float GetRuneCooldown(uint8 index) const { return m_runes->_Runes[index].Cooldown; }
-        bool IsBaseRuneSlotsOnCooldown(RuneType runeType) const;
+        bool IsRuneFullyDepleted(uint8 index) const;
+        /// <summary>
+        /// Checks if there is a fully depleted rune. A rune is considered fully depleted when it's on cooldown and isn't recovering yet ('waiting' for another rune to finish regenerating)
+        /// </summary>
+        /// <param name="runeType">The kind of base rune that is being checked (Blood, Unholy, Frost). Death Runes are no base rune and can't be checked with this method. Use the underlying base rune instead.</param>
+        /// <returns>true when there is a fully depleted rune</returns>
+        bool HasFullyDepletedRune(RuneType runeType) const;
         RuneType GetLastUsedRune() { return m_runes->LastUsedRune; }
         uint8 GetLastUsedRuneMask() { return m_runes->LastUsedRuneMask; }
         void ClearLastUsedRuneMask() { m_runes->LastUsedRuneMask = 0; }
