@@ -25,27 +25,23 @@
 #include "SpellScript.h"
 #include "Unit.h"
 
-enum WarriorSpells
+namespace Scripts::Spells::Warrior
 {
-    SPELL_WARRIOR_CHARGE_STUN                   = 7922,
-    SPELL_WARRIOR_CHARGE_ENERGIZE               = 34846,
-    SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_BUFF    = 65156,
-    SPELL_WARRIOR_JUGGERNAUT_CRIT_BONUS_TALENT  = 64976
-};
-// 78 - Heroic Strike
-class spell_warr_heroic_strike : public SpellScript
-{
-    // Damage = {8+$ap*60/100}
-    void CalculateDamage(Unit* /*victim*/, int32& damage, int32& /*flatMod*/, float& /*pctMod*/)
+    // 78 - Heroic Strike
+    class spell_warr_heroic_strike : public SpellScript
     {
-        damage = static_cast<int32>(8 + GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK) * 0.6f);
-    }
+        // Damage = {8+$ap*60/100}
+        void CalculateDamage(SpellEffectInfo const& /*spellEffectInfo*/, Unit* /*victim*/, int32& damage, int32& /*flatMod*/, float& /*pctMod*/)
+        {
+            damage = static_cast<int32>(8 + GetCaster()->GetTotalAttackPowerValue(BASE_ATTACK) * 0.6f);
+        }
 
-    void Register() override
-    {
-        CalcDamage += SpellCalcDamageFn(spell_warr_heroic_strike::CalculateDamage);
-    }
-};
+        void Register() override
+        {
+            CalcDamage += SpellCalcDamageFn(spell_warr_heroic_strike::CalculateDamage);
+        }
+    };
+}
 
 class spell_warr_charge : public SpellScript
 {
@@ -88,6 +84,7 @@ class spell_warr_charge : public SpellScript
 
 void AddSC_warrior_spell_scripts()
 {
+    using namespace Scripts::Spells::Warrior;
     RegisterSpellScript(spell_warr_heroic_strike);
     RegisterSpellScript(spell_warr_charge);
 }

@@ -21,8 +21,8 @@
 #include "CellImpl.h"
 #include "Containers.h"
 #include "CreatureAISelector.h"
-#include "DatabaseEnv.h"
 #include "DB2Stores.h"
+#include "DatabaseEnv.h"
 #include "G3DPosition.hpp"
 #include "GameEventSender.h"
 #include "GameObjectAI.h"
@@ -39,6 +39,7 @@
 #include "LootMgr.h"
 #include "Map.h"
 #include "MapManager.h"
+#include "MapUtils.h"
 #include "MiscPackets.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
@@ -46,10 +47,10 @@
 #include "PhasingHandler.h"
 #include "PoolMgr.h"
 #include "QueryPackets.h"
-#include "Util.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
 #include "Transport.h"
+#include "Util.h"
 #include "Vignette.h"
 #include "World.h"
 #include <G3D/Box.h>
@@ -929,7 +930,7 @@ void GameObject::AddToWorld()
         if (m_zoneScript)
             m_zoneScript->OnGameObjectCreate(this);
 
-        GetMap()->GetObjectsStore().Insert<GameObject>(GetGUID(), this);
+        GetMap()->GetObjectsStore().Insert<GameObject>(this);
         if (m_spawnId)
             GetMap()->GetGameObjectBySpawnIdStore().insert(std::make_pair(m_spawnId, this));
 
@@ -969,7 +970,7 @@ void GameObject::RemoveFromWorld()
 
         if (m_spawnId)
             Trinity::Containers::MultimapErasePair(GetMap()->GetGameObjectBySpawnIdStore(), m_spawnId, this);
-        GetMap()->GetObjectsStore().Remove<GameObject>(GetGUID());
+        GetMap()->GetObjectsStore().Remove<GameObject>(this);
     }
 }
 
@@ -2102,17 +2103,6 @@ bool GameObject::IsTransport() const
     return gInfo->type == GAMEOBJECT_TYPE_TRANSPORT || gInfo->type == GAMEOBJECT_TYPE_MAP_OBJ_TRANSPORT;
 }
 
-// is Dynamic transport = non-stop Transport
-bool GameObject::IsDynTransport() const
-{
-    // If something is marked as a transport, don't transmit an out of range packet for it.
-    GameObjectTemplate const* gInfo = GetGOInfo();
-    if (!gInfo)
-        return false;
-
-    return gInfo->type == GAMEOBJECT_TYPE_MAP_OBJ_TRANSPORT || gInfo->type == GAMEOBJECT_TYPE_TRANSPORT;
-}
-
 bool GameObject::IsDestructibleBuilding() const
 {
     GameObjectTemplate const* gInfo = GetGOInfo();
@@ -2282,9 +2272,7 @@ bool GameObject::ActivateToQuest(Player const* target) const
     {
         case GAMEOBJECT_TYPE_QUESTGIVER:
         {
-            GameObject* go = const_cast<GameObject*>(this);
-            QuestGiverStatus questStatus = const_cast<Player*>(target)->GetQuestDialogStatus(go);
-            if (questStatus != QuestGiverStatus::None && questStatus != QuestGiverStatus::Future)
+            if ((target->GetQuestDialogStatus(this) & ~QuestGiverStatusFutureMask) != QuestGiverStatus::None)
                 return true;
             break;
         }

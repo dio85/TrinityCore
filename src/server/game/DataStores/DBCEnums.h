@@ -526,7 +526,7 @@ enum class CriteriaType : int16
     TotalFactionsEncountered                       = 89,  // Total factions encountered
     LootAnyItem                                    = 90,  // Loot any item
     ObtainAnyItem                                  = 91,  // Obtain any item
-    AnyoneTriggerGameEventScenario                 = 92,  /*NYI*/ // Anyone will Trigger game event "{GameEvents}" (Scenario Only)
+    AnyoneTriggerGameEventScenario                 = 92,  // Anyone will Trigger game event "{GameEvents}" (Scenario Only)
     RollAnyNeed                                    = 93,  // Roll any number on need
     RollAnyGreed                                   = 94,  // Roll any number on greed
     ReleasedSpirit                                 = 95,  /*NYI*/ // Released Spirit
@@ -655,7 +655,7 @@ enum class CriteriaType : int16
     CompleteAnyReplayQuest                         = 218, // Complete Any Replay Quest
     BuyItemsFromVendors                            = 219, // Buy items from vendors
     SellItemsToVendors                             = 220, // Sell items to vendors
-    ReachMaxLevel                                  = 221, /*NYI*/ // Reach Max Level
+    ReachMaxLevel                                  = 221, // Reach Max Level
     MemorizeSpell                                  = 222, /*NYI*/ // Memorize Spell "{Spell}"
     LearnTransmogIllusion                          = 223, /*NYI*/ // Learn Transmog Illusion
     LearnAnyTransmogIllusion                       = 224, /*NYI*/ // Learn Any Transmog Illusion
@@ -2064,14 +2064,17 @@ DEFINE_ENUM_FLAG(SummonPropertiesFlags);
 
 enum class TaxiNodeFlags : int32
 {
-    ShowOnAllianceMap           = 0x00000001,
-    ShowOnHordeMap              = 0x00000002,
-    ShowOnMapBorder             = 0x00000004,
-    ShowIfClientPassesCondition = 0x00000008,
-    UsePlayerFavoriteMount      = 0x00000010,
-    EndPointPnly                = 0x00000020,
-    IgnoreForFindNearest        = 0x00000040,
-    DoNotShowInWorldMapUI       = 0x00000080,
+    ShowOnAllianceMap                           = 0x00000001,
+    ShowOnHordeMap                              = 0x00000002,
+    ShowOnMapBorder                             = 0x00000004,
+    ShowIfClientPassesCondition                 = 0x00000008,
+    UsePlayerFavoriteMount                      = 0x00000010,
+    EndPointOnly                                = 0x00000020,
+    IgnoreForFindNearest                        = 0x00000040,
+    DoNotShowInWorldMapUI                       = 0x00000080,
+    ShowNpcMinimapAtlasIfClientPassesCondition  = 0x00000100,
+    MapLayerTransition                          = 0x00000200,
+    NotAccountWide                              = 0x00000400
 };
 
 DEFINE_ENUM_FLAG(TaxiNodeFlags);

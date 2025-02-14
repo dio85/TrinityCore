@@ -27,6 +27,7 @@
 #include "ClientConfigPackets.h"
 #include "Common.h"
 #include "Conversation.h"
+#include "ConversationAI.h"
 #include "Corpse.h"
 #include "DatabaseEnv.h"
 #include "DB2Stores.h"
@@ -1150,7 +1151,9 @@ void WorldSession::HandleMountSetFavorite(WorldPackets::Misc::MountSetFavorite& 
 
 void WorldSession::HandleCloseInteraction(WorldPackets::Misc::CloseInteraction& closeInteraction)
 {
-    if (_player->PlayerTalkClass->GetInteractionData().SourceGuid == closeInteraction.SourceGuid)
+    if (_player->PlayerTalkClass->GetInteractionData().IsLaunchedByQuest)
+        _player->PlayerTalkClass->GetInteractionData().IsLaunchedByQuest = false;
+    else if (_player->PlayerTalkClass->GetInteractionData().SourceGuid == closeInteraction.SourceGuid)
         _player->PlayerTalkClass->GetInteractionData().Reset();
 
     if (_player->GetStableMaster() == closeInteraction.SourceGuid)
@@ -1159,8 +1162,8 @@ void WorldSession::HandleCloseInteraction(WorldPackets::Misc::CloseInteraction& 
 
 void WorldSession::HandleConversationLineStarted(WorldPackets::Misc::ConversationLineStarted& conversationLineStarted)
 {
-    if (Conversation* convo = ObjectAccessor::GetConversation(*_player, conversationLineStarted.ConversationGUID))
-        sScriptMgr->OnConversationLineStarted(convo, conversationLineStarted.LineID, _player);
+    if (Conversation* conversation = ObjectAccessor::GetConversation(*_player, conversationLineStarted.ConversationGUID))
+        conversation->AI()->OnLineStarted(conversationLineStarted.LineID, _player);
 }
 
 void WorldSession::HandleQueryCountdownTimer(WorldPackets::Misc::QueryCountdownTimer& queryCountdownTimer)
