@@ -1629,6 +1629,32 @@ struct GuildPerkSpellsLoadInfo
     static constexpr DB2LoadInfo Instance{ Fields, 2, &GuildPerkSpellsMeta::Instance, HOTFIX_SEL_GUILD_PERK_SPELLS };
 };
 
+struct GroupFinderActivityLoadInfo
+{
+    static constexpr DB2FieldMeta Fields[18] =
+    {
+        { false, FT_INT, "ID" },
+        { false, FT_STRING, "FullName" },
+        { false, FT_STRING, "ShortName" },
+        { false, FT_BYTE, "GroupFinderCategoryID" },
+        { true, FT_BYTE, "OrderIndex" },
+        { true, FT_INT, "GroupFinderActivityGrpID" },
+        { false, FT_BYTE, "Field34043659005" },
+        { false, FT_INT, "Flags" },
+        { false, FT_SHORT, "MinGearLevelSuggestion" },
+        { true, FT_INT, "PlayerConditionID" },
+        { false, FT_SHORT, "MapID" },
+        { false, FT_BYTE, "DifficultyID" },
+        { false, FT_SHORT, "AreaID" },
+        { false, FT_BYTE, "MaxPlayers" },
+        { false, FT_BYTE, "DisplayType" },
+        { false, FT_BYTE, "MinLevel" },
+        { false, FT_BYTE, "MaxLevelSuggestion" },
+        { true, FT_INT, "IconFileDataID" },
+    };
+    static constexpr DB2LoadInfo Instance{ Fields, 18, &GroupFinderActivityMeta::Instance, HOTFIX_SEL_GROUP_FINDER_ACTIVITY, };
+};
+
 struct HeirloomLoadInfo
 {
     static constexpr DB2FieldMeta Fields[20] =

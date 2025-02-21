@@ -20,6 +20,8 @@
 #include "WorldSession.h"
 #include "GameTime.h"
 #include "Group.h"
+#include "LFGListMgr.h"
+#include "LFGList.h"
 #include "LFGMgr.h"
 #include "LFGPackets.h"
 #include "Log.h"
@@ -143,6 +145,52 @@ void WorldSession::HandleLfgListGetStatus(WorldPackets::LFG::LFGListGetStatus& /
 
 void WorldSession::HandleLfgRequestLFGListBlacklist(WorldPackets::LFG::LFGRequestLFGListBlacklist& /*lfgListGetStatus*/)
 {
+    WorldPackets::LFG::LFGListUpdateBlacklist  UpdateBlackList;
+    Player* player = GetPlayer();
+    uint8 level = player->GetLevel();
+    uint8 expansion = player->GetSession()->GetExpansion();
+    uint16 areaID = GetPlayer()->GetAreaId();
+
+    for (GroupFinderActivityEntry const* activity : sGroupFinderActivityStore)
+    {
+        uint32 blacklistReason = 0;
+        activity->AreaID == areaID;
+
+        if (activity->GroupFinderCategoryID == 120) // Custom always shown
+            continue;
+
+        else if (activity->MinLevel > level)
+            blacklistReason = lfg::LFG_LOCKSTATUS_TOO_LOW_LEVEL;
+        else if (activity->MaxLevelSuggestion < level)
+            blacklistReason = lfg::LFG_LOCKSTATUS_TOO_HIGH_LEVEL;
+        else if (activity->MinGearLevelSuggestion > GetPlayer()->GetAverageItemLevel())
+            blacklistReason = lfg::LFG_LOCKSTATUS_TOO_LOW_GEAR_SCORE;
+        if (blacklistReason)
+        {
+            WorldPackets::LFG::LFGListBlacklist blacklist;
+            blacklist.ActivityID = activity->ID;
+            blacklist.Reason = blacklistReason;
+            UpdateBlackList.Blacklists.push_back(blacklist);
+        }
+    }
+    SendPacket(UpdateBlackList.Write());
+}
+
+void WorldSession::HandleLfgListJoin(WorldPackets::LFG::LfgListJoin& packet)
+{
+    auto list = new LFGListEntry;
+    list->GroupFinderActivityData = sGroupFinderActivityStore.LookupEntry(packet.Request.ActivityID);
+    list->ItemLevel = packet.Request.ItemLevel;
+    list->AutoAccept = packet.Request.AutoAccept;
+    list->GroupName = packet.Request.GroupName;
+    list->Comment = packet.Request.Comment;
+    list->VoiceChat = packet.Request.VoiceChat;
+    list->HonorLevel = packet.Request.HonorLevel;
+    if (packet.Request.QuestID.has_value())
+        list->QuestID = *packet.Request.QuestID;
+    list->ApplicationGroup = nullptr;
+    list->PrivateGroup = packet.Request.PrivateGroup;
+    sLFGListMgr->Insert(list, GetPlayer());
 }
 
 void WorldSession::SendLfgPlayerLockInfo()

@@ -416,6 +416,8 @@ namespace WorldPackets
         class LFGListGetStatus;
         class LFGRequestLFGListBlacklist;
         class CompleteReadyCheck;
+
+        class LfgListJoin;
     }
 
     namespace Loot
@@ -1541,6 +1543,8 @@ class TC_GAME_API WorldSession
         void HandleDFGetJoinStatus(WorldPackets::LFG::DFGetJoinStatus& dfGetJoinStatus);
         void HandleLfgListGetStatus(WorldPackets::LFG::LFGListGetStatus& lfgListGetStatus);
         void HandleLfgRequestLFGListBlacklist(WorldPackets::LFG::LFGRequestLFGListBlacklist& lfgListGetStatus);
+
+        void HandleLfgListJoin(WorldPackets::LFG::LfgListJoin& packet);
 
         void SendLfgUpdateStatus(lfg::LfgUpdateData const& updateData, bool party);
         void SendLfgRoleChosen(ObjectGuid guid, uint8 roles);

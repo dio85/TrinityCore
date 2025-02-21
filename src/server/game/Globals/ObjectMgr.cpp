@@ -6018,6 +6018,11 @@ InstanceTemplate const* ObjectMgr::GetInstanceTemplate(uint32 mapID) const
     return nullptr;
 }
 
+Player* ObjectMgr::GetPlayerByLowGUID(ObjectGuid::LowType const& lowguid) const
+{
+    return ObjectAccessor::FindPlayer(ObjectGuid::Create<HighGuid::Player>(lowguid));
+}
+
 NpcText const* ObjectMgr::GetNpcText(uint32 Text_ID) const
 {
     NpcTextContainer::const_iterator itr = _npcTextStore.find(Text_ID);

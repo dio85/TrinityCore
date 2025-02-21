@@ -1537,6 +1537,29 @@ struct GuildPerkSpellsEntry
     int32 SpellID;
 };
 
+// structure for GroupFinderActivity.db2
+struct GroupFinderActivityEntry
+{
+    int32 ID;
+    LocalizedString FullName;
+    LocalizedString ShortName;
+    uint8 GroupFinderCategoryID;
+    int8 OrderIndex;
+    int32 GroupFinderActivityGrpID;
+    uint8 Field34043659005;
+    uint32 Flags;
+    uint16 MinGearLevelSuggestion;
+    int32 PlayerConditionID;
+    uint16 MapID;
+    uint8 DifficultyID;
+    uint16 AreaID;
+    uint8 MaxPlayers;
+    uint8 DisplayType;
+    uint8 MinLevel;
+    uint8 MaxLevelSuggestion;
+    int32 IconFileDataID;
+};
+
 // structure for Heirloom.db2
 struct HeirloomEntry
 {

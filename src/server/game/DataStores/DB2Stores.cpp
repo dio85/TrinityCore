@@ -120,6 +120,7 @@ DB2Storage<GuildColorBackgroundEntry>           sGuildColorBackgroundStore("Guil
 DB2Storage<GuildColorBorderEntry>               sGuildColorBorderStore("GuildColorBorder.db2", &GuildColorBorderLoadInfo::Instance);
 DB2Storage<GuildColorEmblemEntry>               sGuildColorEmblemStore("GuildColorEmblem.db2", &GuildColorEmblemLoadInfo::Instance);
 DB2Storage<GuildPerkSpellsEntry>                sGuildPerkSpellsStore("GuildPerkSpells.db2", &GuildPerkSpellsLoadInfo::Instance);
+DB2Storage<GroupFinderActivityEntry>            sGroupFinderActivityStore("GroupFinderActivity.db2", &GroupFinderActivityLoadInfo::Instance);
 DB2Storage<HeirloomEntry>                       sHeirloomStore("Heirloom.db2", &HeirloomLoadInfo::Instance);
 DB2Storage<HolidaysEntry>                       sHolidaysStore("Holidays.db2", &HolidaysLoadInfo::Instance);
 DB2Storage<ImportPriceArmorEntry>               sImportPriceArmorStore("ImportPriceArmor.db2", &ImportPriceArmorLoadInfo::Instance);
@@ -622,6 +623,7 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sGuildColorBorderStore);
     LOAD_DB2(sGuildColorEmblemStore);
     LOAD_DB2(sGuildPerkSpellsStore);
+    LOAD_DB2(sGroupFinderActivityStore);
     LOAD_DB2(sHeirloomStore);
     LOAD_DB2(sHolidaysStore);
     LOAD_DB2(sImportPriceArmorStore);
@@ -2056,6 +2058,24 @@ JournalTierEntry const* DB2Manager::GetJournalTier(uint32 index) const
 {
     if (index < _journalTiersByIndex.size())
         return _journalTiersByIndex[index];
+    return nullptr;
+}
+
+const GroupFinderActivityEntry* DB2Manager::GetActivityID(uint32 activityID)
+{
+    for (const GroupFinderActivityEntry* activity : sGroupFinderActivityStore)
+        if (activity->ID == static_cast<int32>(activityID))
+            return activity;
+
+    return nullptr;
+}
+
+const GroupFinderActivityEntry* DB2Manager::FindActivityByID(const std::vector<GroupFinderActivityEntry>& activities, int32 activityID) {
+    for (const auto& activity : activities) {
+        if (activity.ID == activityID) {
+            return &activity;
+        }
+    }
     return nullptr;
 }
 

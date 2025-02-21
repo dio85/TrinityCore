@@ -97,6 +97,7 @@ TC_GAME_API extern DB2Storage<GuildColorBackgroundEntry>            sGuildColorB
 TC_GAME_API extern DB2Storage<GuildColorBorderEntry>                sGuildColorBorderStore;
 TC_GAME_API extern DB2Storage<GuildColorEmblemEntry>                sGuildColorEmblemStore;
 TC_GAME_API extern DB2Storage<GuildPerkSpellsEntry>                 sGuildPerkSpellsStore;
+TC_GAME_API extern DB2Storage<GroupFinderActivityEntry>             sGroupFinderActivityStore;
 TC_GAME_API extern DB2Storage<HolidaysEntry>                        sHolidaysStore;
 TC_GAME_API extern DB2Storage<ImportPriceArmorEntry>                sImportPriceArmorStore;
 TC_GAME_API extern DB2Storage<ImportPriceQualityEntry>              sImportPriceQualityStore;
@@ -402,6 +403,8 @@ public:
     ItemModifiedAppearanceEntry const* GetDefaultItemModifiedAppearance(uint32 itemId) const;
     std::vector<ItemSetSpellEntry const*> const* GetItemSetSpells(uint32 itemSetId) const;
     JournalTierEntry const* GetJournalTier(uint32 index) const;
+    const GroupFinderActivityEntry* GetActivityID(uint32 activityID);
+    const GroupFinderActivityEntry* FindActivityByID(const std::vector<GroupFinderActivityEntry>& activities, int32 activityID);
     static LFGDungeonsEntry const* GetLfgDungeon(uint32 mapId, Difficulty difficulty);
     static uint32 GetDefaultMapLight(uint32 mapId);
     static uint32 GetLiquidFlags(uint32 liquidType);
