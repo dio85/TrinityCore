@@ -20,6 +20,7 @@
 
 namespace WorldPackets
 {
+
     namespace MythicPlus
     {
         ByteBuffer& operator<<(ByteBuffer& data, DungeonScoreMapSummary const& dungeonScoreMapSummary)
@@ -28,6 +29,7 @@ namespace WorldPackets
             data << float(dungeonScoreMapSummary.MapScore);
             data << int32(dungeonScoreMapSummary.BestRunLevel);
             data << int32(dungeonScoreMapSummary.BestRunDurationMS);
+            data << uint8(dungeonScoreMapSummary.Unknown1110);
             data.WriteBit(dungeonScoreMapSummary.FinishedSuccess);
             data.FlushBits();
 
@@ -54,7 +56,7 @@ namespace WorldPackets
             data << uint32(mythicPlusMember.NativeRealmAddress);
             data << uint32(mythicPlusMember.VirtualRealmAddress);
             data << int32(mythicPlusMember.ChrSpecializationID);
-            data << int16(mythicPlusMember.RaceID);
+            data << int8(mythicPlusMember.RaceID);
             data << int32(mythicPlusMember.ItemLevel);
             data << int32(mythicPlusMember.CovenantID);
             data << int32(mythicPlusMember.SoulbindID);
@@ -119,7 +121,7 @@ namespace WorldPackets
         {
             data << int32(dungeonScoreData.TotalRuns);
             data << uint32(dungeonScoreData.Seasons.size());
-    
+
             for (DungeonScoreSeasonData const& season : dungeonScoreData.Seasons)
                 data << season;
 
@@ -328,5 +330,5 @@ namespace WorldPackets
 
             return &_worldPacket;
         }
-}
+    }
 }
