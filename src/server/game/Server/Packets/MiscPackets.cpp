@@ -907,6 +907,26 @@ WorldPacket const* WorldPackets::Misc::DisplayWorldText::Write()
 WorldPacket const* WorldPackets::Misc::EndLightningStorm::Write()
 {
     _worldPacket << LightningStormId;
+    return &_worldPacket;
+}
+
+WorldPacket const* WorldPackets::Misc::AccountWarbandSceneUpdate::Write()
+{
+    _worldPacket << Bits<1>(IsFullUpdate);
+    _worldPacket << uint32(WarbandScenes->size());
+    _worldPacket << uint32(WarbandScenes->size());
+    _worldPacket << uint32(WarbandScenes->size());
+
+    for (auto [warbandSceneId, _] : *WarbandScenes)
+        _worldPacket << uint32(warbandSceneId);
+
+    for (auto [_, data] : *WarbandScenes)
+        _worldPacket << Bits<1>(data.Flags.HasFlag(WarbandSceneCollectionFlags::Favorite));
+
+    for (auto [_, data] : *WarbandScenes)
+        _worldPacket << Bits<1>(data.Flags.HasFlag(WarbandSceneCollectionFlags::HasFanfare));
+
+    _worldPacket.FlushBits();
 
     return &_worldPacket;
 }

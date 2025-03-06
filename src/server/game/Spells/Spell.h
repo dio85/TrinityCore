@@ -443,6 +443,7 @@ class TC_GAME_API Spell
         void EffectChangeActiveCombatTraitConfig();
         void EffectTeleportGraveyard();
         void EffectUpdateInteractions();
+        void EffectLearnWarbandScene();
 
         typedef std::unordered_set<Aura*> UsedSpellMods;
 

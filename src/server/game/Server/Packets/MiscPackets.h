@@ -1156,11 +1156,22 @@ namespace WorldPackets
         class EndLightningStorm final : public ServerPacket
         {
         public:
-            EndLightningStorm() : ServerPacket(SMSG_END_LIGHTNING_STORM) { }
+            EndLightningStorm() : ServerPacket(SMSG_END_LIGHTNING_STORM) {}
 
             WorldPacket const* Write() override;
 
             uint32 LightningStormId = 0;
+        };
+
+        class AccountWarbandSceneUpdate final : public ServerPacket
+        {
+        public:
+            AccountWarbandSceneUpdate() : ServerPacket(SMSG_ACCOUNT_WARBAND_SCENE_UPDATE) { }
+
+            WorldPacket const* Write() override;
+
+            bool IsFullUpdate = false;
+            WarbandSceneCollectionContainer const* WarbandScenes = nullptr;
         };
     }
 }
