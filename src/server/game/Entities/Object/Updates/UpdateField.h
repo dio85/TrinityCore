@@ -907,6 +907,8 @@ namespace UF
         template<typename F>
         friend struct OptionalUpdateFieldSetter;
 
+        friend class UpdateFieldHolder;
+
     public:
         using value_type = T;
         using IsLarge = std::integral_constant<bool, sizeof(void*) * 3 < sizeof(T)>;
@@ -922,7 +924,7 @@ namespace UF
             return !!_value;
         }
 
-        operator bool const() const
+        operator bool() const
         {
             return has_value();
         }

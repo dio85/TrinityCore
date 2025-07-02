@@ -50,7 +50,7 @@ enum eAuctionHouse
 
 AuctionsBucketKey::AuctionsBucketKey(WorldPackets::AuctionHouse::AuctionBucketKey const& key) :
     ItemId(key.ItemID), ItemLevel(key.ItemLevel), BattlePetSpeciesId(key.BattlePetSpeciesID.value_or(0)),
-    SuffixItemNameDescriptionId(key.SuffixItemNameDescriptionID.value_or(0))
+    SuffixItemNameDescriptionId(key.ItemSuffix.value_or(0))
 {
 }
 
@@ -109,6 +109,10 @@ void AuctionsBucketData::BuildBucketInfo(WorldPackets::AuctionHouse::BucketInfo*
                 bucketInfo->MaxBattlePetQuality = bucketInfo->MaxBattlePetQuality ? std::max(*bucketInfo->MaxBattlePetQuality, quality) : quality;
                 bucketInfo->MaxBattlePetLevel = bucketInfo->MaxBattlePetLevel ? std::max(*bucketInfo->MaxBattlePetLevel, level) : level;
                 bucketInfo->BattlePetBreedID = breedId;
+                if (!bucketInfo->BattlePetLevelMask)
+                    bucketInfo->BattlePetLevelMask = 0;
+
+                *bucketInfo->BattlePetLevelMask |= 1 << (level - 1);
             }
         }
 
@@ -437,13 +441,23 @@ Item* AuctionHouseMgr::GetAItem(ObjectGuid itemGuid)
 uint64 AuctionHouseMgr::GetCommodityAuctionDeposit(ItemTemplate const* item, Minutes time, uint32 quantity)
 {
     uint32 sellPrice = item->GetSellPrice();
-    return uint64(std::ceil(std::floor(fmax(0.15 * quantity * sellPrice, 100.0)) / int64(SILVER)) * int64(SILVER)) * (time.count() / (MIN_AUCTION_TIME / MINUTE));
+    uint64 deposit = uint64(sellPrice * 0.15); // rounding off the remainder
+    uint32 remainder = std::ceil(sellPrice * 0.15 - deposit); // and subtracting a ceiled remainder on top of it
+    if (deposit >= remainder)
+        deposit -= remainder;
+
+    return uint64(deposit * quantity) * (time.count() / (MIN_AUCTION_TIME / MINUTE));
 }
 
 uint64 AuctionHouseMgr::GetItemAuctionDeposit(Player const* player, Item const* item, Minutes time)
 {
     uint32 sellPrice = item->GetSellPrice(player);
-    return uint64(std::ceil(std::floor(fmax(sellPrice * 0.15, 100.0)) / int64(SILVER)) * int64(SILVER)) * (time.count() / (MIN_AUCTION_TIME / MINUTE));
+    uint64 deposit = uint64(sellPrice * 0.15); // rounding off the remainder
+    uint32 remainder = std::ceil(sellPrice * 0.15 - deposit); // and subtracting a ceiled remainder on top of it
+    if (deposit >= remainder)
+        deposit -= remainder;
+
+    return deposit * (time.count() / (MIN_AUCTION_TIME / MINUTE));
 }
 
 std::string AuctionHouseMgr::BuildItemAuctionMailSubject(AuctionMailType type, AuctionPosting const* auction)
@@ -514,12 +528,12 @@ void AuctionHouseMgr::LoadAuctions()
             }
 
             Item* item = NewItemOrBag(proto);
-            if (!item->LoadFromDB(itemGuid, ObjectGuid::Create<HighGuid::Player>(fields[53].GetUInt64()), fields, itemEntry))
+            if (!item->LoadFromDB(itemGuid, ObjectGuid::Create<HighGuid::Player>(fields[54].GetUInt64()), fields, itemEntry))
             {
                 delete item;
                 continue;
             }
-            uint32 auctionId = fields[54].GetUInt32();
+            uint32 auctionId = fields[55].GetUInt32();
             itemsByAuction[auctionId].push_back(item);
 
             ++count;
@@ -847,13 +861,11 @@ AuctionPosting* AuctionHouseObject::GetAuction(uint32 auctionId)
 void AuctionHouseObject::AddAuction(CharacterDatabaseTransaction trans, AuctionPosting auction)
 {
     AuctionsBucketKey key = AuctionsBucketKey::ForItem(auction.Items[0]);
-    AuctionsBucketData* bucket;
-    auto bucketItr = _buckets.find(key);
-    if (bucketItr == _buckets.end())
+    auto [bucketItr, isNew] = _buckets.try_emplace(key);
+    AuctionsBucketData* bucket = &bucketItr->second;
+    if (isNew)
     {
         // we don't have any item for this key yet, create new bucket
-        bucketItr = _buckets.emplace(std::piecewise_construct, std::forward_as_tuple(key), std::forward_as_tuple()).first;
-        bucket = &bucketItr->second;
         bucket->Key = key;
 
         ItemTemplate const* itemTemplate = auction.Items[0]->GetTemplate();
@@ -900,8 +912,6 @@ void AuctionHouseObject::AddAuction(CharacterDatabaseTransaction trans, AuctionP
             bucket->FullName[locale] = wstrCaseAccentInsensitiveParse(utf16name, locale);
         }
     }
-    else
-        bucket = &bucketItr->second;
 
     // update cache fields
     uint64 priceToDisplay = auction.BuyoutOrUnitPrice ? auction.BuyoutOrUnitPrice : auction.BidAmount;
@@ -910,10 +920,10 @@ void AuctionHouseObject::AddAuction(CharacterDatabaseTransaction trans, AuctionP
 
     if (ItemModifiedAppearanceEntry const* itemModifiedAppearance = auction.Items[0]->GetItemModifiedAppearance())
     {
-        auto itr = std::ranges::find(bucket->ItemModifiedAppearanceId, itemModifiedAppearance->ID, &std::pair<uint32, uint32>::first);
+        auto itr = std::ranges::find(bucket->ItemModifiedAppearanceId, itemModifiedAppearance->ID, Trinity::TupleElement<0>);
 
         if (itr == bucket->ItemModifiedAppearanceId.end())
-            itr = std::ranges::find(bucket->ItemModifiedAppearanceId, 0u, &std::pair<uint32, uint32>::first);
+            itr = std::ranges::find(bucket->ItemModifiedAppearanceId, 0u, Trinity::TupleElement<0>);
 
         if (itr != bucket->ItemModifiedAppearanceId.end())
         {
@@ -1703,7 +1713,7 @@ bool AuctionHouseObject::BuyCommodity(CharacterDatabaseTransaction trans, Player
     }
 
     WorldPackets::AuctionHouse::AuctionWonNotification packet;
-    packet.Info.Initialize(auctions[0], items[0].Items[0]);
+    packet.Info.Initialize(_auctionHouse->ID, auctions[0], items[0].Items[0]);
     player->SendDirectMessage(packet.Write());
 
     for (std::size_t i = 0; i < auctions.size(); ++i)
@@ -1805,7 +1815,7 @@ void AuctionHouseObject::SendAuctionWon(AuctionPosting const* auction, Player* b
         if (bidder)
         {
             WorldPackets::AuctionHouse::AuctionWonNotification packet;
-            packet.Info.Initialize(auction, auction->Items[0]);
+            packet.Info.Initialize(_auctionHouse->ID, auction, auction->Items[0]);
             bidder->SendDirectMessage(packet.Write());
 
             // FIXME: for offline player need also

@@ -20,6 +20,7 @@
 #include "BattlefieldMgr.h"
 #include "BattlegroundMgr.h"
 #include "Chat.h"
+#include "DB2HotfixGenerator.h"
 #include "DB2Stores.h"
 #include "DatabaseEnv.h"
 #include "LanguageMgr.h"
@@ -826,6 +827,12 @@ void SpellMgr::LoadSpellTalentRanks()
 
     for (TalentEntry const* talentInfo : sTalentStore)
     {
+        // In Classic, the Talent.db2 and TalentTab.db2 are polluted with deprecated data which can be
+        // identified by a negative order index. We just skip these.
+        TalentTabEntry const* talentTab = sTalentTabStore.LookupEntry(talentInfo->TabID);
+        if (!talentTab || talentTab->OrderIndex < 0)
+            continue;
+
         SpellInfo const* lastSpell = nullptr;
         for (size_t rank = talentInfo->SpellRank.size() - 1; rank > 0; --rank)
         {
@@ -2068,19 +2075,11 @@ void SpellMgr::LoadSkillLineAbilityMap()
 
     mSkillLineAbilityMap.clear();
 
-    uint32 count = 0;
+    for (SkillLineAbilityEntry const* skillLineAbility : sSkillLineAbilityStore)
+        mSkillLineAbilityMap.emplace(skillLineAbility->Spell, skillLineAbility);
 
-    for (uint32 i = 0; i < sSkillLineAbilityStore.GetNumRows(); ++i)
-    {
-        SkillLineAbilityEntry const* SkillInfo = sSkillLineAbilityStore.LookupEntry(i);
-        if (!SkillInfo)
-            continue;
-
-        mSkillLineAbilityMap.insert(SkillLineAbilityMap::value_type(SkillInfo->Spell, SkillInfo));
-        ++count;
-    }
-
-    TC_LOG_INFO("server.loading", ">> Loaded {} SkillLineAbility MultiMap Data in {} ms", count, GetMSTimeDiffToNow(oldMSTime));
+    TC_LOG_INFO("server.loading", ">> Loaded {} SkillLineAbility MultiMap Data in {} ms",
+        mSkillLineAbilityMap.size(), GetMSTimeDiffToNow(oldMSTime));
 }
 
 void SpellMgr::LoadSpellPetAuras()
@@ -2296,7 +2295,7 @@ void SpellMgr::LoadPetLevelupSpellMap()
 
             for (SkillLineAbilityEntry const* skillLine : *skillLineAbilities)
             {
-                if (skillLine->AcquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
+                if (skillLine->GetAcquireMethod() != SkillLineAbilityAcquireMethod::AutomaticCharLevel)
                     continue;
 
                 SpellInfo const* spell = GetSpellInfo(skillLine->Spell, DIFFICULTY_NONE);
@@ -2899,7 +2898,7 @@ void SpellMgr::LoadSpellInfoServerside()
             auto existingSpellBounds = _GetSpellInfo(spellId);
             if (existingSpellBounds.begin() != existingSpellBounds.end())
             {
-                TC_LOG_ERROR("sql.sql", "Serverside spell {} difficulty {} effext index {} references a regular spell loaded from file. Adding serverside effects to existing spells is not allowed.",
+                TC_LOG_ERROR("sql.sql", "Serverside spell {} difficulty {} effect index {} references a regular spell loaded from file. Adding serverside effects to existing spells is not allowed.",
                     spellId, uint32(difficulty), effect.EffectIndex);
                 continue;
             }
@@ -3987,12 +3986,6 @@ void SpellMgr::LoadSpellInfoCorrections()
         });
     });
 
-    // Gathering Storms
-    ApplySpellFix({ 198300 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->ProcCharges = 1; // override proc charges, has 0 (unlimited) in db2
-    });
-
     ApplySpellFix({
         15538, // Gout of Flame
         42490, // Energized!
@@ -4027,8 +4020,8 @@ void SpellMgr::LoadSpellInfoCorrections()
         });
     });
 
-    // Gift of the Naaru (priest and monk variants)
-    ApplySpellFix({ 59544, 121093 }, [](SpellInfo* spellInfo)
+    // Gift of the Naaru (priest)
+    ApplySpellFix({ 59544 }, [](SpellInfo* spellInfo)
     {
         spellInfo->SpellFamilyFlags[2] = 0x80000000;
     });
@@ -4122,12 +4115,6 @@ void SpellMgr::LoadSpellInfoCorrections()
 
     // Dark Conclave Ritualist Channel
     ApplySpellFix({ 38469 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(6);  // 100yd
-    });
-
-    // Chrono Shift (enemy slow part)
-    ApplySpellFix({ 236299 }, [](SpellInfo* spellInfo)
     {
         spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(6);  // 100yd
     });
@@ -4755,154 +4742,6 @@ void SpellMgr::LoadSpellInfoCorrections()
     });
     // ENDOF FIRELANDS
 
-    //
-    // MARDUM SPELLS
-    //
-
-    // 187382 - The Invasion Begins: Summon Wrath Warrior
-    ApplySpellFix({ 187382 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->RangeEntry = sSpellRangeStore.LookupEntry(13); // 50000 yards
-
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
-        });
-    });
-
-    // 195061 - Beaming Gaze
-    ApplySpellFix({ 195061 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
-        });
-    });
-
-    // ENDOF MARDUM SPELLS
-
-    //
-    // ANTORUS THE BURNING THRONE SPELLS
-    //
-
-    // Decimation
-    ApplySpellFix({ 244449 }, [](SpellInfo* spellInfo)
-    {
-        // For some reason there is a instakill effect that serves absolutely no purpose.
-        // Until we figure out what it's actually used for we disable it.
-        ApplySpellEffectFix(spellInfo, EFFECT_2, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->Effect = SPELL_EFFECT_NONE;
-        });
-    });
-
-    // ENDOF ANTORUS THE BURNING THRONE SPELLS
-
-    //
-    // SEPULCHER OF THE FIRST ONES
-    //
-
-    // Wicked Star (Marker)
-    ApplySpellFix({ 365021 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->Attributes |= SPELL_ATTR0_AURA_IS_DEBUFF;
-    });
-
-    // Empowered Wicked Star (Marker)
-    ApplySpellFix({ 367632 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->Attributes |= SPELL_ATTR0_AURA_IS_DEBUFF;
-    });
-
-    // Wicked Star Areatrigger
-    ApplySpellFix({ 365017 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
-        });
-    });
-
-    // Willpower Energize Large
-    ApplySpellFix({ 365228 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->AttributesEx6 |= SPELL_ATTR6_IGNORE_PHASE_SHIFT;
-    });
-
-    // Willpower Energize Small
-    ApplySpellFix({ 365217 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->AttributesEx6 |= SPELL_ATTR6_IGNORE_PHASE_SHIFT;
-    });
-
-    // Force of Will
-    ApplySpellFix({ 368913 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->Attributes |= SPELL_ATTR0_AURA_IS_DEBUFF;
-    });
-
-    // Fragment of Hope Areatrigger
-    ApplySpellFix({ 365816 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
-        });
-        ApplySpellEffectFix(spellInfo, EFFECT_1, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
-        });
-    });
-
-    // Shadestep
-    ApplySpellFix({ 363976 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetB = SpellImplicitTargetInfo(TARGET_DEST_DEST);
-        });
-    });
-    // END OF SEPULCHER OF THE FIRST ONES
-
-    //
-    // THE AZURE VAULT SPELLS
-    //
-
-    // Stinging Sap
-    ApplySpellFix({ 374523 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->AttributesEx8 |= SPELL_ATTR8_CAN_ATTACK_IMMUNE_PC;
-    });
-
-    // Jump to Center (DNT)
-    ApplySpellFix({ 387981 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
-        });
-    });
-
-    // Jump to Platform (DNT)
-    ApplySpellFix({ 388082 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetA = SpellImplicitTargetInfo(TARGET_DEST_DEST);
-        });
-    });
-
-    // ENDOF THE AZURE VAULT SPELLS
-    //
-    // Summon Master Li Fei
-    ApplySpellFix({ 102445 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->TargetA = SpellImplicitTargetInfo(TARGET_DEST_DB);
-        });
-    });
-
     // Earthquake
     ApplySpellFix({ 61882 }, [](SpellInfo* spellInfo)
     {
@@ -4915,56 +4754,6 @@ void SpellMgr::LoadSpellInfoCorrections()
     ApplySpellFix({ 42401, 43105, 42428 }, [](SpellInfo* spellInfo)
     {
         spellInfo->Attributes |= SPELL_ATTR0_NO_IMMUNITIES;
-    });
-
-    // Horde / Alliance switch (BG mercenary system)
-    ApplySpellFix({ 195838, 195843 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->Effect = SPELL_EFFECT_APPLY_AURA;
-        });
-        ApplySpellEffectFix(spellInfo, EFFECT_1, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->Effect = SPELL_EFFECT_APPLY_AURA;
-        });
-        ApplySpellEffectFix(spellInfo, EFFECT_2, [](SpellEffectInfo* spellEffectInfo)
-        {
-            spellEffectInfo->Effect = SPELL_EFFECT_APPLY_AURA;
-        });
-    });
-
-    // Fire Cannon
-    ApplySpellFix({ 181593 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            // This spell never triggers, theory is that it was supposed to be only triggered until target reaches some health percentage
-            // but was broken and always caused visuals to break, then target was changed to immediately spawn with desired health
-            // leaving old data in db2
-            spellEffectInfo->TriggerSpell = 0;
-        });
-    });
-
-    ApplySpellFix({ 265057 }, [](SpellInfo* spellInfo)
-    {
-        ApplySpellEffectFix(spellInfo, EFFECT_0, [](SpellEffectInfo* spellEffectInfo)
-        {
-            // Fix incorrect spell id (it has self in TriggerSpell)
-            spellEffectInfo->TriggerSpell = 16403;
-        });
-    });
-
-    // Ray of Frost (Fingers of Frost charges)
-    ApplySpellFix({ 269748 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->AttributesEx &= ~SPELL_ATTR1_IS_CHANNELLED;
-    });
-
-    // Burning Rush
-    ApplySpellFix({ 111400 }, [](SpellInfo* spellInfo)
-    {
-        spellInfo->AttributesEx4 |= SPELL_ATTR4_AURA_IS_BUFF;
     });
 
     for (SpellInfo const& s : mSpellInfoMap)
@@ -5031,12 +4820,19 @@ void SpellMgr::LoadSpellInfoCorrections()
             spellInfo->MaxAffectedTargets = 1;
     }
 
-    if (SummonPropertiesEntry* properties = const_cast<SummonPropertiesEntry*>(sSummonPropertiesStore.LookupEntry(121)))
+    DB2HotfixGenerator summonProperties(sSummonPropertiesStore);
+    summonProperties.ApplyHotfix(121, [](SummonPropertiesEntry* properties)
+    {
         properties->Title = AsUnderlyingType(SummonTitle::Totem);
-    if (SummonPropertiesEntry* properties = const_cast<SummonPropertiesEntry*>(sSummonPropertiesStore.LookupEntry(647))) // 52893
+    });
+    summonProperties.ApplyHotfix(647, [](SummonPropertiesEntry* properties) // 52893
+    {
         properties->Title = AsUnderlyingType(SummonTitle::Totem);
-    if (SummonPropertiesEntry* properties = const_cast<SummonPropertiesEntry*>(sSummonPropertiesStore.LookupEntry(628))) // Hungry Plaguehound
+    });
+    summonProperties.ApplyHotfix(628, [](SummonPropertiesEntry* properties) // Hungry Plaguehound
+    {
         properties->Control = SUMMON_CATEGORY_PET;
+    });
 
     TC_LOG_INFO("server.loading", ">> Loaded SpellInfo corrections in {} ms", GetMSTimeDiffToNow(oldMSTime));
 }
@@ -5154,7 +4950,7 @@ void SpellMgr::LoadPetFamilySpellsStore()
                 if (skillLine->SkillLine != cFamily->SkillLine[0] && skillLine->SkillLine != cFamily->SkillLine[1])
                     continue;
 
-                if (skillLine->AcquireMethod != SKILL_LINE_ABILITY_LEARNED_ON_SKILL_LEARN)
+                if (skillLine->GetAcquireMethod() != SkillLineAbilityAcquireMethod::AutomaticCharLevel)
                     continue;
 
                 sPetFamilySpellsStore[cFamily->ID].insert(spellInfo->Id);

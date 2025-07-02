@@ -40,6 +40,8 @@ Conversation::Conversation() : WorldObject(false), _duration(0), _textureKitId(0
     m_updateFlag.Stationary = true;
     m_updateFlag.Conversation = true;
 
+    m_entityFragments.Add(WowCS::EntityFragment::Tag_Conversation, false);
+
     _lastLineEndTimes.fill(Milliseconds::zero());
 }
 
@@ -198,12 +200,13 @@ void Conversation::Create(ObjectGuid::LowType lowGuid, uint32 conversationEntry,
         lineField.ActorIndex = line->ActorIdx;
         lineField.Flags = line->Flags;
 
+        std::array<Milliseconds, TOTAL_LOCALES>& startTimes = _lineStartTimes[line->Id];
         for (LocaleConstant locale = LOCALE_enUS; locale < TOTAL_LOCALES; locale = LocaleConstant(locale + 1))
         {
             if (locale == LOCALE_none)
                 continue;
 
-            _lineStartTimes[{ locale, line->Id }] = _lastLineEndTimes[locale];
+            startTimes[locale] = _lastLineEndTimes[locale];
             if (locale == DEFAULT_LOCALE)
                 lineField.StartTime = _lastLineEndTimes[locale].count();
 
@@ -214,7 +217,7 @@ void Conversation::Create(ObjectGuid::LowType lowGuid, uint32 conversationEntry,
         }
     }
 
-    _duration = Milliseconds(*std::max_element(_lastLineEndTimes.begin(), _lastLineEndTimes.end()));
+    _duration = *std::ranges::max_element(_lastLineEndTimes);
     SetUpdateFieldValue(m_values.ModifyValue(&Conversation::m_conversationData).ModifyValue(&UF::ConversationData::LastLineEndTime), _duration.count());
     SetUpdateFieldValue(m_values.ModifyValue(&Conversation::m_conversationData).ModifyValue(&UF::ConversationData::Lines), std::move(lines));
 
@@ -275,7 +278,10 @@ void Conversation::AddActor(int32 actorId, uint32 actorIdx, ConversationActorTyp
 
 Milliseconds const* Conversation::GetLineStartTime(LocaleConstant locale, int32 lineId) const
 {
-    return Trinity::Containers::MapGetValuePtr(_lineStartTimes, { locale, lineId });
+    if (std::array<Milliseconds, TOTAL_LOCALES> const* durations = Trinity::Containers::MapGetValuePtr(_lineStartTimes, lineId))
+        return &(*durations)[locale];
+
+    return nullptr;
 }
 
 Milliseconds Conversation::GetLastLineEndTime(LocaleConstant locale) const
@@ -373,6 +379,7 @@ void Conversation::BuildValuesUpdate(ByteBuffer* data, UF::UpdateFieldFlag flags
 void Conversation::BuildValuesUpdateForPlayerWithMask(UpdateData* data, UF::ObjectData::Mask const& requestedObjectMask,
     UF::ConversationData::Mask const& requestedConversationMask, Player const* target) const
 {
+    UF::UpdateFieldFlag flags = GetUpdateFieldFlagsFor(target);
     UpdateMask<NUM_CLIENT_OBJECT_TYPES> valuesMask;
     if (requestedObjectMask.IsAnySet())
         valuesMask.Set(TYPEID_OBJECT);
@@ -383,6 +390,7 @@ void Conversation::BuildValuesUpdateForPlayerWithMask(UpdateData* data, UF::Obje
     ByteBuffer& buffer = PrepareValuesUpdateBuffer(data);
     std::size_t sizePos = buffer.wpos();
     buffer << uint32(0);
+    BuildEntityFragmentsForValuesUpdateForPlayerWithMask(&buffer, flags);
     buffer << uint32(valuesMask.GetBlock(0));
 
     if (valuesMask[TYPEID_OBJECT])
