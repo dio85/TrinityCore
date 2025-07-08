@@ -30,7 +30,7 @@ namespace WorldPackets
             data << int32(dungeonScoreMapSummary.BestRunLevel);
             data << int32(dungeonScoreMapSummary.BestRunDurationMS);
             data << uint8(dungeonScoreMapSummary.Unknown1110);
-            data.WriteBit(dungeonScoreMapSummary.FinishedSuccess);
+            data << Bits<1>(dungeonScoreMapSummary.FinishedSuccess);
             data.FlushBits();
 
             return data;

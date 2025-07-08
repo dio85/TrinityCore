@@ -30,6 +30,7 @@
 #include "ObjectDefines.h"
 #include "ObjectGuid.h"
 #include "ObjectGuidSequenceGenerator.h"
+#include "PlayerChoice.h"
 #include "Position.h"
 #include "QuestDef.h"
 #include "RaceMask.h"
@@ -53,6 +54,7 @@ struct AccessRequirement;
 struct DeclinedName;
 struct DungeonEncounterEntry;
 struct FactionEntry;
+struct PlayerChoice;
 struct PlayerInfo;
 struct PlayerLevelInfo;
 struct SkillRaceClassInfoEntry;
