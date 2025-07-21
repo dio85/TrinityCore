@@ -27,7 +27,6 @@
 #include "DisableMgr.h"
 #include "GridNotifiers.h"
 #include "Group.h"
-#include "IpAddress.h"
 #include "IPLocation.h"
 #include "Item.h"
 #include "ItemBonusMgr.h"
@@ -1254,7 +1253,7 @@ public:
             return false;
         }
 
-        Item* item = playerTarget->StoreNewItem(dest, itemId, true, GenerateItemRandomBonusListId(itemId), GuidSet(), itemContext,
+        Item* item = playerTarget->StoreNewItem(dest, itemId, true, GenerateItemRandomBonusListId(itemId), GenerateItemRandomPropertiesId(itemId), GuidSet(), itemContext,
             bonusListIDs.empty() ? nullptr : &bonusListIDs);
 
         // remove binding (let GM give it to another player later)
@@ -1348,7 +1347,7 @@ public:
                     bonusListIDsForItem.insert(bonusListIDsForItem.begin(), contextBonuses.begin(), contextBonuses.end());
                 }
 
-                Item* item = playerTarget->StoreNewItem(dest, itemTemplatePair.first, true, {}, GuidSet(), itemContext,
+                Item* item = playerTarget->StoreNewItem(dest, itemTemplatePair.first, true, {}, {}, GuidSet(), itemContext,
                     bonusListIDsForItem.empty() ? nullptr : &bonusListIDsForItem);
                 if (!item)
                     continue;
@@ -1973,8 +1972,6 @@ public:
 
             target->GetSession()->m_muteTime = 0;
         }
-
-        using namespace std::string_view_literals;
 
         LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_UPD_MUTE_TIME);
         stmt->setInt64(0, 0);

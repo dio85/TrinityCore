@@ -730,6 +730,20 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PrepareStatement(HOTFIX_SEL_ITEM_PRICE_BASE, "SELECT ID, ItemLevel, Armor, Weapon FROM item_price_base WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_ITEM_PRICE_BASE, "SELECT MAX(ID) + 1 FROM item_price_base", CONNECTION_SYNCH);
 
+    // ItemRandomProperties.db2
+    PrepareStatement(HOTFIX_SEL_ITEM_RANDOM_PROPERTIES, "SELECT ID, Name, Enchantment1, Enchantment2, Enchantment3, Enchantment4, Enchantment5"
+        " FROM item_random_properties WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_ITEM_RANDOM_PROPERTIES, "SELECT MAX(ID) + 1 FROM item_random_properties", CONNECTION_SYNCH);
+    PREPARE_LOCALE_STMT(HOTFIX_SEL_ITEM_RANDOM_PROPERTIES, "SELECT ID, Name_lang FROM item_random_properties_locale WHERE (`VerifiedBuild` > 0) = ?"
+        " AND locale = ?", CONNECTION_SYNCH);
+
+    // ItemRandomSuffix.db2
+    PrepareStatement(HOTFIX_SEL_ITEM_RANDOM_SUFFIX, "SELECT ID, Name, Enchantment1, Enchantment2, Enchantment3, Enchantment4, Enchantment5, "
+        "AllocationPct1, AllocationPct2, AllocationPct3, AllocationPct4, AllocationPct5 FROM item_random_suffix WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_ITEM_RANDOM_SUFFIX, "SELECT MAX(ID) + 1 FROM item_random_suffix", CONNECTION_SYNCH);
+    PREPARE_LOCALE_STMT(HOTFIX_SEL_ITEM_RANDOM_SUFFIX, "SELECT ID, Name_lang FROM item_random_suffix_locale WHERE (`VerifiedBuild` > 0) = ?"
+        " AND locale = ?", CONNECTION_SYNCH);
+
     // ItemReforge.db2
     PrepareStatement(HOTFIX_SEL_ITEM_REFORGE, "SELECT ID, SourceStat, SourceMultiplier, TargetStat, TargetMultiplier, LegacyItemReforgeID"
         " FROM item_reforge WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
@@ -1106,6 +1120,22 @@ void HotfixDatabaseConnection::DoPrepareStatements()
     PrepareStatement(HOTFIX_SEL_REWARD_PACK_X_ITEM, "SELECT ID, ItemID, ItemQuantity, RewardPackID FROM reward_pack_x_item"
         " WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
     PREPARE_MAX_ID_STMT(HOTFIX_SEL_REWARD_PACK_X_ITEM, "SELECT MAX(ID) + 1 FROM reward_pack_x_item", CONNECTION_SYNCH);
+
+    // ScalingStatDistribution.db2
+    PrepareStatement(HOTFIX_SEL_SCALING_STAT_DISTRIBUTION, "SELECT ID, PlayerLevelToItemLevelCurveID, Minlevel, Maxlevel, Bonus1, Bonus2, Bonus3, "
+        "Bonus4, Bonus5, Bonus6, Bonus7, Bonus8, Bonus9, Bonus10, StatID1, StatID2, StatID3, StatID4, StatID5, StatID6, StatID7, StatID8, StatID9, "
+        "StatID10 FROM scaling_stat_distribution WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_SCALING_STAT_DISTRIBUTION, "SELECT MAX(ID) + 1 FROM scaling_stat_distribution", CONNECTION_SYNCH);
+
+    // ScalingStatValues.db2
+    PrepareStatement(HOTFIX_SEL_SCALING_STAT_VALUES, "SELECT ID, Charlevel, WeaponDPS1H, WeaponDPS2H, SpellcasterDPS1H, SpellcasterDPS2H, RangedDPS, "
+        "WandDPS, SpellPower, BudgetPrimary, BudgetSecondary, BudgetTertiary, BudgetSub, BudgetTrivial, ClothCloakArmor, Unk440_0, Unk440_1, "
+        "Unk440_2, Unk440_3, Unk440_4, Unk440_5, Unk440_6, Unk440_7, Unk440_8, Unk440_9, Unk440_10, Unk440_11, Unk440_12, Unk440_13, Unk440_14, "
+        "Unk440_15, ShoulderArmor1, ShoulderArmor2, ShoulderArmor3, ShoulderArmor4, ChestArmor1, ChestArmor2, ChestArmor3, ChestArmor4, HeadArmor1, "
+        "HeadArmor2, HeadArmor3, HeadArmor4, LegsArmor1, LegsArmor2, LegsArmor3, LegsArmor4, FeetArmor1, FeetArmor2, FeetArmor3, FeetArmor4, "
+        "WaistArmor1, WaistArmor2, WaistArmor3, WaistArmor4, HandsArmor1, HandsArmor2, HandsArmor3, HandsArmor4, WristsArmor1, WristsArmor2, "
+        "WristsArmor3, WristsArmor4 FROM scaling_stat_values WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);
+    PREPARE_MAX_ID_STMT(HOTFIX_SEL_SCALING_STAT_VALUES, "SELECT MAX(ID) + 1 FROM scaling_stat_values", CONNECTION_SYNCH);
 
     // Scenario.db2
     PrepareStatement(HOTFIX_SEL_SCENARIO, "SELECT ID, Name, AreaTableID, Type, Flags, UiTextureKitID FROM scenario WHERE (`VerifiedBuild` > 0) = ?", CONNECTION_SYNCH);

@@ -548,6 +548,18 @@ namespace WorldPackets
             int32 SpellID = 0;
         };
 
+        class UpdateCooldown final : public ServerPacket
+        {
+        public:
+            UpdateCooldown() : ServerPacket(SMSG_UPDATE_COOLDOWN, 4 + 4 + 4) { }
+
+            WorldPacket const* Write() override;
+
+            int32 SpellID = 0;
+            float ModChange = 1.0f;
+            float ModRate = 1.0f;
+        };
+
         struct SpellCooldownStruct
         {
             SpellCooldownStruct() { }
@@ -626,6 +638,19 @@ namespace WorldPackets
             uint32 NextRecoveryTime = 0;
             uint8 ConsumedCharges = 0;
             float ChargeModRate = 1.0f;
+        };
+
+        class UpdateChargeCategoryCooldown final : public ServerPacket
+        {
+        public:
+            UpdateChargeCategoryCooldown() : ServerPacket(SMSG_UPDATE_CHARGE_CATEGORY_COOLDOWN, 4 + 4 + 4 + 1) { }
+
+            WorldPacket const* Write() override;
+
+            int32 Category = 0;
+            float ModChange = 1.0f;
+            float ModRate = 1.0f;
+            bool Snapshot = false;
         };
 
         struct SpellChargeEntry
@@ -970,13 +995,25 @@ namespace WorldPackets
 
             ObjectGuid Guid;
             ObjectGuid CastID;
-            uint16 MoveMsgID = 0;
+            uint32 MoveMsgID = 0;
             int32 SpellID = 0;
             float Pitch = 0.0f;
             float Speed = 0.0f;
             TaggedPosition<Position::XYZ> FirePos;
             TaggedPosition<Position::XYZ> ImpactPos;
             Optional<MovementInfo> Status;
+        };
+
+        class UpdateAuraVisual final : public ClientPacket
+        {
+        public:
+            explicit UpdateAuraVisual(WorldPacket&& packet) : ClientPacket(CMSG_UPDATE_SPELL_VISUAL, std::move(packet)) { }
+
+            void Read() override;
+
+            int32 SpellID = 0;
+            SpellCastVisual Visual;
+            ObjectGuid TargetGUID;
         };
 
         class SpellDelayed final : public ServerPacket

@@ -92,6 +92,7 @@ Transport::Transport() : GameObject(),
     m_updateFlag.ServerTime = true;
     m_updateFlag.Stationary = true;
     m_updateFlag.Rotation = true;
+    m_updateFlag.GameObject = true;
 }
 
 Transport::~Transport()
@@ -140,7 +141,6 @@ bool Transport::Create(ObjectGuid::LowType guidlow, uint32 entry, float x, float
     }
 
     _pathProgress = !goinfo->moTransport.allowstopping ? getMSTime() /*might be called before world update loop begins, don't use GameTime*/ % tInfo->TotalPathTime : 0;
-    SetPathProgressForClient(float(_pathProgress) / float(tInfo->TotalPathTime));
     SetObjectScale(goinfo->size);
     SetPeriod(tInfo->TotalPathTime);
     SetEntry(goinfo->entry);
@@ -203,14 +203,12 @@ void Transport::Update(uint32 diff)
         _eventsToTrigger->set();
     }
 
-    SetPathProgressForClient(float(_pathProgress) / float(GetTransportPeriod()));
-
     uint32 timer = _pathProgress % GetTransportPeriod();
 
     size_t eventToTriggerIndex = _eventsToTrigger->find_first();
     if (eventToTriggerIndex != boost::dynamic_bitset<uint8>::npos)
     {
-        while (eventToTriggerIndex < _transportInfo->Events.size() && _transportInfo->Events[eventToTriggerIndex].Timestamp < timer)
+        while (eventToTriggerIndex < _transportInfo->Events.size() && _transportInfo->Events[eventToTriggerIndex].Timestamp <= timer)
         {
             if (TransportPathLeg const* leg = _transportInfo->GetLegForTime(_transportInfo->Events[eventToTriggerIndex].Timestamp))
                 if (leg->MapId == GetMapId())

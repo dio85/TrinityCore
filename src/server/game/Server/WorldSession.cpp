@@ -20,7 +20,6 @@
 */
 
 #include "WorldSession.h"
-#include "QueryHolder.h"
 #include "AccountMgr.h"
 #include "AuthenticationPackets.h"
 #include "BattlePetMgr.h"
@@ -121,6 +120,7 @@ WorldSession::WorldSession(uint32 id, std::string&& name, uint32 battlenetAccoun
     _os(std::move(os)),
     _clientBuild(build),
     _clientBuildVariant(clientBuildVariant),
+    _realmListSecret(),
     _battlenetRequestToken(0),
     _logoutTime(0),
     m_inQueue(false),
@@ -212,7 +212,7 @@ std::string WorldSession::GetPlayerInfo() const
 /// Send a packet to the client
 void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/)
 {
-    if (packet->GetOpcode() < MIN_SMSG_OPCODE_NUMBER || packet->GetOpcode() > MAX_SMSG_OPCODE_NUMBER)
+    if (!opcodeTable.IsValid(static_cast<OpcodeServer>(packet->GetOpcode())))
     {
         char const* specialName = packet->GetOpcode() == UNKNOWN_OPCODE ? "UNKNOWN_OPCODE" : "INVALID_OPCODE";
         TC_LOG_ERROR("network.opcode", "Prevented sending of {} (0x{:04X}) to {}", specialName, packet->GetOpcode(), GetPlayerInfo());
@@ -294,6 +294,24 @@ void WorldSession::SendPacket(WorldPacket const* packet, bool forced /*= false*/
 
     TC_LOG_TRACE("network.opcode", "S->C: {} {}", GetPlayerInfo(), GetOpcodeNameForLogging(static_cast<OpcodeServer>(packet->GetOpcode())));
     m_Socket[conIdx]->SendPacket(*packet);
+}
+
+void WorldSession::AddInstanceConnection(WorldSession* session, std::weak_ptr<WorldSocket> sockRef, ConnectToKey key)
+{
+    std::shared_ptr<WorldSocket> socket = sockRef.lock();
+    if (!socket || !socket->IsOpen())
+        return;
+
+    if (!session || session->GetConnectToInstanceKey() != key.Raw)
+    {
+        socket->SendAuthResponseError(ERROR_TIMED_OUT);
+        socket->DelayedCloseSocket();
+        return;
+    }
+
+    socket->SetWorldSession(session);
+    session->m_Socket[CONNECTION_TYPE_INSTANCE] = std::move(socket);
+    session->HandleContinuePlayerLogin();
 }
 
 /// Add an incoming packet to the queue
@@ -1312,7 +1330,7 @@ bool WorldSession::DosProtection::EvaluateOpcode(WorldPacket& p, time_t time) co
     }
 }
 
-uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint16 opcode) const
+uint32 WorldSession::DosProtection::GetMaxPacketCounterAllowed(uint32 opcode) const
 {
     uint32 maxPacketCounterAllowed;
     switch (opcode)
@@ -1566,11 +1584,16 @@ void WorldSession::SendTimeSync()
     timeSyncRequest.SequenceIndex = _timeSyncNextCounter;
     SendPacket(timeSyncRequest.Write());
 
-    _pendingTimeSyncRequests[_timeSyncNextCounter] = getMSTime();
+    RegisterTimeSync(_timeSyncNextCounter);
 
     // Schedule next sync in 10 sec (except for the 2 first packets, which are spaced by only 5s)
     _timeSyncTimer = _timeSyncNextCounter == 0 ? 5000 : 10000;
     _timeSyncNextCounter++;
+}
+
+void WorldSession::RegisterTimeSync(uint32 counter)
+{
+    _pendingTimeSyncRequests[counter] = getMSTime();
 }
 
 uint32 WorldSession::AdjustClientMovementTime(uint32 time) const

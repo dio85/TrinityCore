@@ -36,6 +36,7 @@
 #include <boost/filesystem/operations.hpp>
 #include <numeric>
 #include <cctype>
+#include <cmath>
 
 DB2Storage<AchievementEntry>                    sAchievementStore("Achievement.db2", &AchievementLoadInfo::Instance);
 DB2Storage<Achievement_CategoryEntry>           sAchievementCategoryStore("Achievement_Category.db2", &AchievementCategoryLoadInfo::Instance);
@@ -157,6 +158,8 @@ DB2Storage<ItemModifiedAppearanceEntry>         sItemModifiedAppearanceStore("It
 DB2Storage<ItemModifiedAppearanceExtraEntry>    sItemModifiedAppearanceExtraStore("ItemModifiedAppearanceExtra.db2", &ItemModifiedAppearanceExtraLoadInfo::Instance);
 DB2Storage<ItemNameDescriptionEntry>            sItemNameDescriptionStore("ItemNameDescription.db2", &ItemNameDescriptionLoadInfo::Instance);
 DB2Storage<ItemPriceBaseEntry>                  sItemPriceBaseStore("ItemPriceBase.db2", &ItemPriceBaseLoadInfo::Instance);
+DB2Storage<ItemRandomPropertiesEntry>           sItemRandomPropertiesStore("ItemRandomProperties.db2", &ItemRandomPropertiesLoadInfo::Instance);
+DB2Storage<ItemRandomSuffixEntry>               sItemRandomSuffixStore("ItemRandomSuffix.db2", &ItemRandomSuffixLoadInfo::Instance);
 DB2Storage<ItemReforgeEntry>                    sItemReforgeStore("ItemReforge.db2", &ItemReforgeLoadInfo::Instance);
 DB2Storage<ItemSearchNameEntry>                 sItemSearchNameStore("ItemSearchName.db2", &ItemSearchNameLoadInfo::Instance);
 DB2Storage<ItemSetEntry>                        sItemSetStore("ItemSet.db2", &ItemSetLoadInfo::Instance);
@@ -220,6 +223,8 @@ DB2Storage<RandPropPointsEntry>                 sRandPropPointsStore("RandPropPo
 DB2Storage<RewardPackEntry>                     sRewardPackStore("RewardPack.db2", &RewardPackLoadInfo::Instance);
 DB2Storage<RewardPackXCurrencyTypeEntry>        sRewardPackXCurrencyTypeStore("RewardPackXCurrencyType.db2", &RewardPackXCurrencyTypeLoadInfo::Instance);
 DB2Storage<RewardPackXItemEntry>                sRewardPackXItemStore("RewardPackXItem.db2", &RewardPackXItemLoadInfo::Instance);
+DB2Storage<ScalingStatDistributionEntry>        sScalingStatDistributionStore("ScalingStatDistribution.db2", &ScalingStatDistributionLoadInfo::Instance);
+DB2Storage<ScalingStatValuesEntry>              sScalingStatValuesStore("ScalingStatValues.db2", &ScalingStatValuesLoadInfo::Instance);
 DB2Storage<ScenarioEntry>                       sScenarioStore("Scenario.db2", &ScenarioLoadInfo::Instance);
 DB2Storage<ScenarioStepEntry>                   sScenarioStepStore("ScenarioStep.db2", &ScenarioStepLoadInfo::Instance);
 DB2Storage<SceneScriptEntry>                    sSceneScriptStore("SceneScript.db2", &SceneScriptLoadInfo::Instance);
@@ -417,6 +422,7 @@ namespace
     WMOAreaTableLookupContainer _wmoAreaTableLookup;
     std::array<std::unordered_map<int32, TalentTabEntry const*>, MAX_CLASSES> _talentTabsByIndex;
     std::unordered_map<uint32, std::vector<uint32>> _primaryTalentTreeSpellsByTalentTab;
+    std::unordered_map<uint32, ScalingStatValuesEntry const*> _scalingStatValuesByCharacterLevel;
 }
 
 void LoadDB2(std::bitset<TOTAL_LOCALES>& availableDb2Locales, std::vector<std::string>& errlist, StorageMap& stores, DB2StorageBase* storage, std::string const& db2Path,
@@ -660,6 +666,8 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sItemModifiedAppearanceExtraStore);
     LOAD_DB2(sItemNameDescriptionStore);
     LOAD_DB2(sItemPriceBaseStore);
+    LOAD_DB2(sItemRandomPropertiesStore);
+    LOAD_DB2(sItemRandomSuffixStore);
     LOAD_DB2(sItemReforgeStore);
     LOAD_DB2(sItemSearchNameStore);
     LOAD_DB2(sItemSetStore);
@@ -723,6 +731,8 @@ uint32 DB2Manager::LoadStores(std::string const& dataPath, LocaleConstant defaul
     LOAD_DB2(sRewardPackStore);
     LOAD_DB2(sRewardPackXCurrencyTypeStore);
     LOAD_DB2(sRewardPackXItemStore);
+    LOAD_DB2(sScalingStatDistributionStore);
+    LOAD_DB2(sScalingStatValuesStore);
     LOAD_DB2(sScenarioStore);
     LOAD_DB2(sScenarioStepStore);
     LOAD_DB2(sSceneScriptStore);
@@ -1392,6 +1402,9 @@ void DB2Manager::IndexLoadedStores()
             sOldContinentsNodesMask[field] |= submask;
     }
 
+    for (ScalingStatValuesEntry const* ssd : sScalingStatValuesStore)
+        _scalingStatValuesByCharacterLevel[ssd->Charlevel] = ssd;
+
     TC_LOG_INFO("server.loading", ">> Indexed DB2 data stores in {} ms", GetMSTimeDiffToNow(oldMSTime));
 }
 
@@ -1630,7 +1643,7 @@ std::vector<DB2Manager::HotfixOptionalData> const* DB2Manager::GetHotfixOptional
 uint32 DB2Manager::GetEmptyAnimStateID() const
 {
     //return sAnimationDataStore.GetNumRows();
-    return 1788; // Yup, again
+    return 1798;
 }
 
 void DB2Manager::InsertNewHotfix(uint32 tableHash, uint32 recordId)
@@ -2121,7 +2134,8 @@ MapDifficultyEntry const* DB2Manager::GetDefaultMapDifficulty(uint32 mapId, Diff
 
     // first find any valid difficulty
     auto foundDifficulty = std::ranges::find_if(difficultiesForMap->begin(), difficultyEnd,
-        [](std::pair<uint32 const, MapDifficultyEntry const*> const& p) { return sDifficultyStore.HasRecord(p.first); });
+        [](uint32 difficultyId) { return sDifficultyStore.HasRecord(difficultyId); },
+        Trinity::Containers::MapKey);
 
     if (foundDifficulty == difficultyEnd)
         return nullptr; // nothing valid was found
@@ -2870,4 +2884,9 @@ bool DB2Manager::MountTypeXCapabilityEntryComparator::Compare(MountTypeXCapabili
 std::vector<ItemEffectEntry const*> const* DB2Manager::GetItemEffectsForItemId(uint32 itemId) const
 {
     return Trinity::Containers::MapGetValuePtr(_itemEffectsByItemId, itemId);
+}
+
+ScalingStatValuesEntry const* DB2Manager::GetScalingStatValuesForLevel(uint32 level) const
+{
+    return Trinity::Containers::MapGetValuePtr(_scalingStatValuesByCharacterLevel, level);
 }

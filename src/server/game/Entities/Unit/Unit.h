@@ -63,6 +63,7 @@ enum InventorySlot
 };
 
 struct AbstractFollower;
+struct AuraCreateInfo;
 struct CharmInfo;
 struct FactionTemplateEntry;
 struct LiquidData;
@@ -1454,6 +1455,18 @@ class TC_GAME_API Unit : public WorldObject
             std::array<uint32, 5> VisitedSpells = { };
             bool AddSpell(uint32 spellId);
         };
+        struct GetCastSpellInfoResult
+        {
+            ::SpellInfo const* SpellInfo = nullptr;
+            TriggerCastFlags TriggerFlag = TRIGGERED_NONE;
+        };
+        GetCastSpellInfoResult GetCastSpellInfo(SpellInfo const* spellInfo) const
+        {
+            GetCastSpellInfoContext context;
+            GetCastSpellInfoResult result;
+            result.SpellInfo = GetCastSpellInfo(spellInfo, result.TriggerFlag, &context);
+            return result;
+        }
         virtual SpellInfo const* GetCastSpellInfo(SpellInfo const* spellInfo, TriggerCastFlags& triggerFlag, GetCastSpellInfoContext* context) const;
         uint32 GetCastSpellXSpellVisualId(SpellInfo const* spellInfo) const override;
 
@@ -1601,9 +1614,16 @@ class TC_GAME_API Unit : public WorldObject
         void _UnregisterAreaTrigger(AreaTrigger* areaTrigger);
         AreaTrigger* GetAreaTrigger(uint32 spellId) const;
         std::vector<AreaTrigger*> GetAreaTriggers(uint32 spellId) const;
+
+        enum class AreaTriggerRemoveReason : uint8
+        {
+            Default,
+            UnitDespawn
+        };
+
         void RemoveAreaTrigger(uint32 spellId);
         void RemoveAreaTrigger(AuraEffect const* aurEff);
-        void RemoveAllAreaTriggers();
+        void RemoveAllAreaTriggers(AreaTriggerRemoveReason reason = AreaTriggerRemoveReason::Default);
 
         void ModifyAuraState(AuraStateType flag, bool apply);
         uint32 BuildAuraStateUpdateForTarget(Unit const* target) const;
@@ -1827,7 +1847,7 @@ class TC_GAME_API Unit : public WorldObject
 
         std::string GetDebugInfo() const override;
 
-        UF::UpdateField<UF::UnitData, 0, TYPEID_UNIT> m_unitData;
+        UF::UpdateField<UF::UnitData, int32(WowCS::EntityFragment::CGObject), TYPEID_UNIT> m_unitData;
 
     protected:
         explicit Unit (bool isWorldObject);

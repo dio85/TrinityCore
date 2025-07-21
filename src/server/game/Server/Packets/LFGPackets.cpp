@@ -665,7 +665,111 @@ namespace WorldPackets::LFG
             if (update.UnkGuid3.has_value())
                 _worldPacket << *update.UnkGuid3;
         }
-        return &_worldPacket;
     }
 
+    return &_worldPacket;
+}
+
+ByteBuffer& operator<<(ByteBuffer& data, LFGPlayerRewards const& lfgPlayerRewards)
+{
+    data.WriteBit(lfgPlayerRewards.RewardItem.has_value());
+    data.WriteBit(lfgPlayerRewards.RewardCurrency.has_value());
+    if (lfgPlayerRewards.RewardItem)
+        data << *lfgPlayerRewards.RewardItem;
+
+    data << uint32(lfgPlayerRewards.Quantity);
+    data << int32(lfgPlayerRewards.BonusQuantity);
+    if (lfgPlayerRewards.RewardCurrency)
+        data << int32(*lfgPlayerRewards.RewardCurrency);
+
+    return data;
+}
+
+WorldPacket const* LFGPlayerReward::Write()
+{
+    _worldPacket << uint32(QueuedSlot);
+    _worldPacket << uint32(ActualSlot);
+    _worldPacket << int32(RewardMoney);
+    _worldPacket << int32(AddedXP);
+    _worldPacket << uint32(Rewards.size());
+
+    for (LFGPlayerRewards const& reward : Rewards)
+        _worldPacket << reward;
+
+    return &_worldPacket;
+}
+
+ByteBuffer& operator<<(ByteBuffer& data, LfgBootInfo const& lfgBootInfo)
+{
+    data << Bits<1>(lfgBootInfo.VoteInProgress);
+    data << Bits<1>(lfgBootInfo.VotePassed);
+    data << Bits<1>(lfgBootInfo.MyVoteCompleted);
+    data << Bits<1>(lfgBootInfo.MyVote);
+    data << SizedString::BitsSize<9>(lfgBootInfo.Reason);
+    data << lfgBootInfo.Target;
+    data << uint32(lfgBootInfo.TotalVotes);
+    data << uint32(lfgBootInfo.BootVotes);
+    data << int32(lfgBootInfo.TimeLeft);
+    data << uint32(lfgBootInfo.VotesNeeded);
+    data << SizedString::Data(lfgBootInfo.Reason);
+
+    return data;
+}
+
+WorldPacket const* LfgBootPlayer::Write()
+{
+    _worldPacket << Info;
+
+    return &_worldPacket;
+}
+
+ByteBuffer& operator<<(ByteBuffer& data, LFGProposalUpdatePlayer const& lfgProposalUpdatePlayer)
+{
+    data << uint8(lfgProposalUpdatePlayer.Roles);
+    data.WriteBit(lfgProposalUpdatePlayer.Me);
+    data.WriteBit(lfgProposalUpdatePlayer.SameParty);
+    data.WriteBit(lfgProposalUpdatePlayer.MyParty);
+    data.WriteBit(lfgProposalUpdatePlayer.Responded);
+    data.WriteBit(lfgProposalUpdatePlayer.Accepted);
+    data.FlushBits();
+
+    return data;
+}
+
+WorldPacket const* LFGProposalUpdate::Write()
+{
+    _worldPacket << Ticket;
+    _worldPacket << uint64(InstanceID);
+    _worldPacket << uint32(ProposalID);
+    _worldPacket << uint32(Slot);
+    _worldPacket << int8(State);
+    _worldPacket << uint32(CompletedMask);
+    _worldPacket << uint32(EncounterMask);
+    _worldPacket << uint32(Players.size());
+    _worldPacket << uint8(Unused);
+    _worldPacket.WriteBit(ValidCompletedMask);
+    _worldPacket.WriteBit(ProposalSilent);
+    _worldPacket.WriteBit(IsRequeue);
+    _worldPacket.FlushBits();
+
+    for (LFGProposalUpdatePlayer const& player : Players)
+        _worldPacket << player;
+
+    return &_worldPacket;
+}
+
+WorldPacket const* LFGOfferContinue::Write()
+{
+    _worldPacket << uint32(Slot);
+
+    return &_worldPacket;
+}
+
+WorldPacket const* LFGTeleportDenied::Write()
+{
+    _worldPacket.WriteBits(Reason, 4);
+    _worldPacket.FlushBits();
+
+    return &_worldPacket;
+}
 }

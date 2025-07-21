@@ -1935,6 +1935,23 @@ struct ItemPriceBaseEntry
     float Weapon;
 };
 
+// structure for ItemRandomProperties.db2
+struct ItemRandomPropertiesEntry
+{
+    uint32 ID;
+    LocalizedString Name;
+    std::array<int32, 5> Enchantment;
+};
+
+// structure for ItemRandomSuffix.db2
+struct ItemRandomSuffixEntry
+{
+    uint32 ID;
+    LocalizedString Name;
+    std::array<int32, 5> Enchantment;
+    std::array<int32, 5> AllocationPct;
+};
+
 // structure for ItemReforge.db2
 struct ItemReforgeEntry
 {
@@ -2907,6 +2924,61 @@ struct RewardPackXItemEntry
     uint32 RewardPackID;
 };
 
+// structure for ScalingStatDistribution.db2
+struct ScalingStatDistributionEntry
+{
+    uint32 ID;
+    uint16 PlayerLevelToItemLevelCurveID;
+    int32 Minlevel;
+    int32 Maxlevel;
+    std::array<int32, 10> Bonus;
+    std::array<int32, 10> StatID;
+};
+
+// structure for ScalingStatValues.db2
+struct ScalingStatValuesEntry
+{
+    uint32 ID;
+    int32 Charlevel;
+    int32 WeaponDPS1H;
+    int32 WeaponDPS2H;
+    int32 SpellcasterDPS1H;
+    int32 SpellcasterDPS2H;
+    int32 RangedDPS;
+    int32 WandDPS;
+    int32 SpellPower;
+    int32 BudgetPrimary;
+    int32 BudgetSecondary;
+    int32 BudgetTertiary;
+    int32 BudgetSub;
+    int32 BudgetTrivial;
+    int32 ClothCloakArmor;
+    int32 Unk440_0;
+    int32 Unk440_1;
+    int32 Unk440_2;
+    int32 Unk440_3;
+    int32 Unk440_4;
+    int32 Unk440_5;
+    int32 Unk440_6;
+    int32 Unk440_7;
+    int32 Unk440_8;
+    int32 Unk440_9;
+    int32 Unk440_10;
+    int32 Unk440_11;
+    int32 Unk440_12;
+    int32 Unk440_13;
+    int32 Unk440_14;
+    int32 Unk440_15;
+    std::array<int32, 4> ShoulderArmor;
+    std::array<int32, 4> ChestArmor;
+    std::array<int32, 4> HeadArmor;
+    std::array<int32, 4> LegsArmor;
+    std::array<int32, 4> FeetArmor;
+    std::array<int32, 4> WaistArmor;
+    std::array<int32, 4> HandsArmor;
+    std::array<int32, 4> WristsArmor;
+};
+
 // structure for Scenario.db2
 struct ScenarioEntry
 {
@@ -3019,6 +3091,7 @@ struct SkillLineAbilityEntry
     int16 SkillupSkillLineID;
     std::array<int32, 2> CharacterPoints;
 
+    SkillLineAbilityAcquireMethod GetAcquireMethod() const { return static_cast<SkillLineAbilityAcquireMethod>(AcquireMethod); }
     EnumFlag<SkillLineAbilityFlags> GetFlags() const { return static_cast<SkillLineAbilityFlags>(Flags); }
 };
 

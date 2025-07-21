@@ -47,6 +47,11 @@ LootItem::LootItem(LootStoreItem const& li) : itemid(li.itemid), conditions(li.c
         case LootStoreItem::Type::Item:
         {
             randomBonusListId = GenerateItemRandomBonusListId(itemid);
+            randomPropertiesId = GenerateItemRandomPropertiesId(itemid);
+            if (randomPropertiesId < 0)
+                if (int32 propertySeed = static_cast<int32>(GenerateEnchSuffixFactor(itemid)))
+                    randomPropertiesSeed = propertySeed;
+
             type = LootItemType::Item;
             ItemTemplate const* proto = sObjectMgr->GetItemTemplate(itemid);
             freeforall = proto && proto->HasFlag(ITEM_FLAG_MULTI_DROP);
@@ -216,10 +221,7 @@ Optional<LootSlotType> LootItem::GetUiTypeForPlayer(Player const* player, Loot c
     {
         if (NotNormalLootItemList const* ffaItems = Trinity::Containers::MapGetValuePtr(loot.GetPlayerFFAItems(), player->GetGUID()))
         {
-            auto ffaItemItr = std::ranges::find_if(*ffaItems, [&](NotNormalLootItem const& ffaItem)
-            {
-                return ffaItem.LootListId == LootListId;
-            });
+            auto ffaItemItr = std::ranges::find(*ffaItems, LootListId, &NotNormalLootItem::LootListId);
             if (ffaItemItr != ffaItems->end() && !ffaItemItr->is_looted)
                 return loot.GetLootMethod() == FREE_FOR_ALL ? LOOT_SLOT_TYPE_OWNER : LOOT_SLOT_TYPE_ALLOW_LOOT;
         }
@@ -978,7 +980,7 @@ bool Loot::AutoStore(Player* player, uint8 bag, uint8 slot, bool broadcast, bool
                     continue;
                 }
 
-                if (Item* pItem = player->StoreNewItem(dest, lootItem->itemid, true, lootItem->randomBonusListId, GuidSet(), lootItem->context, &lootItem->BonusListIDs))
+                if (Item* pItem = player->StoreNewItem(dest, lootItem->itemid, true, lootItem->randomBonusListId, lootItem->randomPropertiesId, GuidSet(), lootItem->context, &lootItem->BonusListIDs))
                 {
                     player->SendNewItem(pItem, lootItem->count, false, createdByPlayer, broadcast, GetDungeonEncounterId());
                     player->ApplyItemLootedSpell(pItem, true);
@@ -1092,7 +1094,7 @@ bool Loot::hasItemFor(Player const* player) const
             return true;
 
     if (NotNormalLootItemList const* ffaItems = Trinity::Containers::MapGetValuePtr(GetPlayerFFAItems(), player->GetGUID()))
-        if (std::ranges::any_of(*ffaItems, std::identity(), &NotNormalLootItem::is_looted))
+        if (std::ranges::any_of(*ffaItems, &NotNormalLootItem::is_looted))
             return true;
 
     return false;

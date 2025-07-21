@@ -64,6 +64,7 @@
 #include "SystemPackets.h"
 #include "Util.h"
 #include "World.h"
+#include <boost/circular_buffer.hpp>
 #include <sstream>
 
 class LoginQueryHolder : public CharacterDatabaseQueryHolder
@@ -364,13 +365,13 @@ void WorldSession::HandleCharEnum(CharacterDatabaseQueryHolder const& holder)
 
                     charInfo.Customizations.clear();
 
-                    if (!(charInfo.Flags2 & (CHAR_CUSTOMIZE_FLAG_CUSTOMIZE | CHAR_CUSTOMIZE_FLAG_FACTION | CHAR_CUSTOMIZE_FLAG_RACE)))
+                    if (!(charInfo.Flags2 & (CHARACTER_FLAG_2_CUSTOMIZE | CHARACTER_FLAG_2_FACTION_CHANGE | CHARACTER_FLAG_2_RACE_CHANGE)))
                     {
                         CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_ADD_AT_LOGIN_FLAG);
                         stmt->setUInt16(0, uint16(AT_LOGIN_CUSTOMIZE));
                         stmt->setUInt64(1, charInfo.Guid.GetCounter());
                         CharacterDatabase.Execute(stmt);
-                        charInfo.Flags2 = CHAR_CUSTOMIZE_FLAG_CUSTOMIZE;
+                        charInfo.Flags2 = CHARACTER_FLAG_2_CUSTOMIZE;
                     }
                 }
 
@@ -964,6 +965,9 @@ void WorldSession::HandleContinuePlayerLogin()
 
     SendPacket(WorldPackets::Auth::ResumeComms(CONNECTION_TYPE_INSTANCE).Write());
 
+    // client will respond to SMSG_RESUME_COMMS with CMSG_QUEUED_MESSAGES_END
+    RegisterTimeSync(SPECIAL_RESUME_COMMS_TIME_SYNC_COUNTER);
+
     AddQueryHolderCallback(CharacterDatabase.DelayQueryHolder(holder)).AfterComplete([this](SQLQueryHolderBase const& holder)
     {
         HandlePlayerLogin(static_cast<LoginQueryHolder const&>(holder));
@@ -1003,6 +1007,12 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         delete pCurrChar;                                   // delete it manually
         m_playerLoading.Clear();
         return;
+    }
+
+    if (!_timeSyncClockDeltaQueue->empty())
+    {
+        pCurrChar->SetPlayerLocalFlag(PLAYER_LOCAL_FLAG_OVERRIDE_TRANSPORT_SERVER_TIME);
+        pCurrChar->SetTransportServerTime(_timeSyncClockDelta);
     }
 
     pCurrChar->SetVirtualPlayerRealm(GetVirtualRealmAddress());
@@ -1063,6 +1073,8 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
         pCurrChar->SetGuildRank(0);
         pCurrChar->SetGuildLevel(0);
     }
+
+    SendAuctionFavoriteList();
 
     pCurrChar->GetSession()->GetBattlePetMgr()->SendJournalLockStatus();
 
@@ -1327,18 +1339,18 @@ void WorldSession::SendFeatureSystemStatus()
     features.ComplaintStatus = COMPLAINT_ENABLED_WITH_AUTO_IGNORE;
     features.CfgRealmID = 2;
     features.CfgRealmRecID = 0;
-    features.TokenPollTimeSeconds = 300;
+    features.CommercePricePollTimeSeconds = 300;
     features.VoiceEnabled = false;
     features.BrowserEnabled = false; // Has to be false, otherwise client will crash if "Customer Support" is opened
 
     // Enable guilds only.
     // This is required to restore old guild channel behavior for GMs.
     // The new club streams do not support sending messages through the guild channel when you are not in a guild.
-    features.ClubsEnabled = true;
-    features.ClubsBattleNetClubTypeAllowed = false;
-    features.ClubsCharacterClubTypeAllowed = false;
-    features.ClubsPresenceUpdateEnabled = true;
-    features.HiddenUIClubsPresenceUpdateTimer = 60000;
+    features.CommunitiesEnabled = true;
+    features.BnetGroupsEnabled = false;
+    features.CharacterCommunitiesEnabled = false;
+    features.ClubPresenceAllowSubscribeAll = true;
+    features.ClubPresenceUnsubscribeDelay = 60000;
 
     features.EuropaTicketSystemStatus.emplace();
     features.EuropaTicketSystemStatus->ThrottleState.MaxTries = 10;
@@ -1346,11 +1358,11 @@ void WorldSession::SendFeatureSystemStatus()
     features.EuropaTicketSystemStatus->ThrottleState.TryCount = 1;
     features.EuropaTicketSystemStatus->ThrottleState.LastResetTimeBeforeNow = 111111;
 
-    features.TutorialsEnabled = true;
-    features.WarModeFeatureEnabled = true;
+    features.TutorialEnabled = true;
+    features.WarModeEnabled = true;
     features.QuestSessionEnabled = true;
     features.WarGamesEnabled = true;
-    features.CanShowSetRoleButton = true;
+    features.Unk441_0 = 1; // set to true according to sniffs
 
     features.GuildEventsEditsEnabled = true;
     features.GuildTradeSkillsEnabled = false; // currently disabled on 4.4.1
@@ -1359,8 +1371,6 @@ void WorldSession::SendFeatureSystemStatus()
     features.AddonChatThrottle.TriesRestoredPerSecond = 1;
     features.AddonChatThrottle.UsedTriesPerMessage = 1;
 
-    features.VoiceChatDisabledByParentalControl = true;
-    features.VoiceChatMutedByParentalControl = true;
     /// END OF DUMMY VALUES
 
     features.EuropaTicketSystemStatus->TicketsEnabled = sWorld->getBoolConfig(CONFIG_SUPPORT_TICKETS_ENABLED);
@@ -1370,12 +1380,14 @@ void WorldSession::SendFeatureSystemStatus()
 
     features.CharUndeleteEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_CHARACTER_UNDELETE_ENABLED);
     features.BpayStoreEnabled = sWorld->getBoolConfig(CONFIG_FEATURE_SYSTEM_BPAY_STORE_ENABLED);
-    features.IsMuted = !CanSpeak();
+    features.IsChatMuted = !CanSpeak();
 
-    features.IsLFDEnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_DUNGEON_FINDER);
-    features.IsLFREnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_RAID_FINDER);
-    features.IsPremadeGroupEnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_PREMADE_GROUP);
-    features.IsGroupFinderEnabled = features.IsLFDEnabled || features.IsLFREnabled || features.IsPremadeGroupEnabled;
+    features.SpeakForMeAllowed = false;
+
+    features.LFDEnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_DUNGEON_FINDER);
+    features.LFREnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_RAID_FINDER);
+    features.PremadeGroupEnabled = sLFGMgr->isOptionEnabled(lfg::LFG_OPTION_ENABLE_PREMADE_GROUP);
+    features.GroupFinderEnabled = features.LFDEnabled || features.LFREnabled || features.PremadeGroupEnabled;
 
     SendPacket(features.Write());
 }

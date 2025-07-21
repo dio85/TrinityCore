@@ -76,6 +76,8 @@ Object::Object() : m_scriptRef(this, NoopObjectDeleter())
     m_objectType        = TYPEMASK_OBJECT;
     m_updateFlag.Clear();
 
+    m_entityFragments.Add(WowCS::EntityFragment::CGObject, false);
+
     m_inWorld           = false;
     m_isNewObject       = false;
     m_isDestroyedObject = false;
@@ -151,8 +153,9 @@ void Object::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) c
         objectType = TYPEID_ACTIVE_PLAYER;
     }
 
-    if (WorldObject const* worldObject = dynamic_cast<WorldObject const*>(this))
+    if (IsWorldObject())
     {
+        WorldObject const* worldObject = static_cast<WorldObject const*>(this);
         if (!flags.MovementUpdate && !worldObject->m_movementInfo.transport.guid.IsEmpty())
             flags.MovementTransport = true;
 
@@ -182,6 +185,8 @@ void Object::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) c
     std::size_t sizePos = buf.wpos();
     buf << uint32(0);
     buf << uint8(fieldFlags);
+    BuildEntityFragments(&buf, m_entityFragments.GetIds());
+    buf << uint8(1);  // IndirectFragmentActive: CGObject
     BuildValuesCreate(&buf, fieldFlags, target);
     buf.put<uint32>(sizePos, buf.wpos() - sizePos - 4);
 
@@ -209,6 +214,15 @@ void Object::BuildValuesUpdateBlockForPlayer(UpdateData* data, Player const* tar
     EnumFlag<UF::UpdateFieldFlag> fieldFlags = GetUpdateFieldFlagsFor(target);
     std::size_t sizePos = buf.wpos();
     buf << uint32(0);
+    buf << uint8(fieldFlags.HasFlag(UF::UpdateFieldFlag::Owner));
+    buf << uint8(m_entityFragments.IdsChanged);
+    if (m_entityFragments.IdsChanged)
+    {
+        buf << uint8(WowCS::EntityFragmentSerializationType::Full);
+        BuildEntityFragments(&buf, m_entityFragments.GetIds());
+    }
+    buf << uint8(m_entityFragments.ContentsChangedMask);
+
     BuildValuesUpdate(&buf, fieldFlags, target);
     buf.put<uint32>(sizePos, buf.wpos() - sizePos - 4);
 
@@ -221,10 +235,29 @@ void Object::BuildValuesUpdateBlockForPlayerWithFlag(UpdateData* data, UF::Updat
 
     std::size_t sizePos = buf.wpos();
     buf << uint32(0);
+    BuildEntityFragmentsForValuesUpdateForPlayerWithMask(&buf, flags);
     BuildValuesUpdateWithFlag(&buf, flags, target);
     buf.put<uint32>(sizePos, buf.wpos() - sizePos - 4);
 
     data->AddUpdateBlock();
+}
+
+void Object::BuildEntityFragments(ByteBuffer* data, std::span<WowCS::EntityFragment const> fragments)
+{
+    data->append(fragments.data(), fragments.size());
+    *data << WorldPackets::As<uint8>(WowCS::EntityFragment::End);
+}
+
+void Object::BuildEntityFragmentsForValuesUpdateForPlayerWithMask(ByteBuffer* data, EnumFlag<UF::UpdateFieldFlag> flags) const
+{
+    uint8 contentsChangedMask = WowCS::CGObjectChangedMask;
+    for (WowCS::EntityFragment updateableFragmentId : m_entityFragments.GetUpdateableIds())
+        if (WowCS::IsIndirectFragment(updateableFragmentId))
+            contentsChangedMask |= m_entityFragments.GetUpdateMaskFor(updateableFragmentId) >> 1;   // set the "fragment exists" bit
+
+    *data << uint8(flags.HasFlag(UF::UpdateFieldFlag::Owner));
+    *data << uint8(false);                                  // m_entityFragments.IdsChanged
+    *data << uint8(contentsChangedMask);
 }
 
 void Object::BuildDestroyUpdateBlock(UpdateData* data) const
@@ -273,6 +306,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags, Playe
     if (GameObject const* go = ToGameObject())
         PauseTimes = go->GetPauseTimes();
 
+    data->WriteBit(IsWorldObject()); // HasPositionFragment
     data->WriteBit(flags.NoBirthAnim);
     data->WriteBit(flags.EnablePortals);
     data->WriteBit(flags.PlayHoverAnim);
@@ -469,6 +503,66 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags, Playe
 
         *data << areaTrigger->GetRollPitchYaw().PositionXYZStream();
 
+        switch (shape.Type)
+        {
+            case AreaTriggerShapeType::Sphere:
+                *data << int8(0);
+                *data << float(shape.SphereDatas.Radius);
+                *data << float(shape.SphereDatas.RadiusTarget);
+                break;
+            case AreaTriggerShapeType::Box:
+                *data << int8(1);
+                *data << float(shape.BoxDatas.Extents[0]);
+                *data << float(shape.BoxDatas.Extents[1]);
+                *data << float(shape.BoxDatas.Extents[2]);
+                *data << float(shape.BoxDatas.ExtentsTarget[0]);
+                *data << float(shape.BoxDatas.ExtentsTarget[1]);
+                *data << float(shape.BoxDatas.ExtentsTarget[2]);
+                break;
+            case AreaTriggerShapeType::Polygon:
+                *data << int8(3);
+                *data << int32(shape.PolygonVertices.size());
+                *data << int32(shape.PolygonVerticesTarget.size());
+                *data << float(shape.PolygonDatas.Height);
+                *data << float(shape.PolygonDatas.HeightTarget);
+
+                for (TaggedPosition<Position::XY> const& vertice : shape.PolygonVertices)
+                    *data << vertice;
+
+                for (TaggedPosition<Position::XY> const& vertice : shape.PolygonVerticesTarget)
+                    *data << vertice;
+                break;
+            case AreaTriggerShapeType::Cylinder:
+                *data << int8(4);
+                *data << float(shape.CylinderDatas.Radius);
+                *data << float(shape.CylinderDatas.RadiusTarget);
+                *data << float(shape.CylinderDatas.Height);
+                *data << float(shape.CylinderDatas.HeightTarget);
+                *data << float(shape.CylinderDatas.LocationZOffset);
+                *data << float(shape.CylinderDatas.LocationZOffsetTarget);
+                break;
+            case AreaTriggerShapeType::Disk:
+                *data << int8(7);
+                *data << float(shape.DiskDatas.InnerRadius);
+                *data << float(shape.DiskDatas.InnerRadiusTarget);
+                *data << float(shape.DiskDatas.OuterRadius);
+                *data << float(shape.DiskDatas.OuterRadiusTarget);
+                *data << float(shape.DiskDatas.Height);
+                *data << float(shape.DiskDatas.HeightTarget);
+                *data << float(shape.DiskDatas.LocationZOffset);
+                *data << float(shape.DiskDatas.LocationZOffsetTarget);
+                break;
+            case AreaTriggerShapeType::BoundedPlane:
+                *data << int8(8);
+                *data << float(shape.BoundedPlaneDatas.Extents[0]);
+                *data << float(shape.BoundedPlaneDatas.Extents[1]);
+                *data << float(shape.BoundedPlaneDatas.ExtentsTarget[0]);
+                *data << float(shape.BoundedPlaneDatas.ExtentsTarget[1]);
+                break;
+            default:
+                break;
+        }
+
         bool hasAbsoluteOrientation = createProperties && createProperties->Flags.HasFlag(AreaTriggerCreatePropertiesFlag::HasAbsoluteOrientation);
         bool hasDynamicShape        = createProperties && createProperties->Flags.HasFlag(AreaTriggerCreatePropertiesFlag::HasDynamicShape);
         bool hasAttached            = createProperties && createProperties->Flags.HasFlag(AreaTriggerCreatePropertiesFlag::HasAttached);
@@ -482,15 +576,9 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags, Playe
         bool hasFacingCurveID       = createProperties && createProperties->FacingCurveId != 0;
         bool hasMoveCurveID         = createProperties && createProperties->MoveCurveId != 0;
         bool hasAnimation           = createProperties && createProperties->AnimId;
-        bool hasUnk3                = createProperties && createProperties->Flags.HasFlag(AreaTriggerCreatePropertiesFlag::Unk3);
+        bool visualAnimIsDecay      = createProperties && createProperties->Flags.HasFlag(AreaTriggerCreatePropertiesFlag::VisualAnimIsDecay);
         bool hasAnimKitID           = createProperties && createProperties->AnimKitId;
         bool hasAnimProgress        = false;
-        bool hasAreaTriggerSphere   = shape.IsSphere();
-        bool hasAreaTriggerBox      = shape.IsBox();
-        bool hasAreaTriggerPolygon  = shape.IsPolygon();
-        bool hasAreaTriggerCylinder = shape.IsCylinder();
-        bool hasDisk                = shape.IsDisk();
-        bool hasBoundedPlane        = shape.IsBoundedPlane();
         bool hasAreaTriggerSpline   = areaTrigger->HasSplines();
         bool hasOrbit               = areaTrigger->HasOrbit();
         bool hasMovementScript      = false;
@@ -511,19 +599,13 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags, Playe
         data->WriteBit(hasPositionalSoundKitID);
         data->WriteBit(hasAnimation);
         data->WriteBit(hasAnimKitID);
-        data->WriteBit(hasUnk3);
+        data->WriteBit(visualAnimIsDecay);
         data->WriteBit(hasAnimProgress);
-        data->WriteBit(hasAreaTriggerSphere);
-        data->WriteBit(hasAreaTriggerBox);
-        data->WriteBit(hasAreaTriggerPolygon);
-        data->WriteBit(hasAreaTriggerCylinder);
-        data->WriteBit(hasDisk);
-        data->WriteBit(hasBoundedPlane);
         data->WriteBit(hasAreaTriggerSpline);
         data->WriteBit(hasOrbit);
         data->WriteBit(hasMovementScript);
 
-        if (hasUnk3)
+        if (visualAnimIsDecay)
             data->WriteBit(false);
 
         data->FlushBits();
@@ -563,66 +645,6 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags, Playe
         if (hasAnimProgress)
             *data << uint32(0);
 
-        if (hasAreaTriggerSphere)
-        {
-            *data << float(shape.SphereDatas.Radius);
-            *data << float(shape.SphereDatas.RadiusTarget);
-        }
-
-        if (hasAreaTriggerBox)
-        {
-            *data << float(shape.BoxDatas.Extents[0]);
-            *data << float(shape.BoxDatas.Extents[1]);
-            *data << float(shape.BoxDatas.Extents[2]);
-            *data << float(shape.BoxDatas.ExtentsTarget[0]);
-            *data << float(shape.BoxDatas.ExtentsTarget[1]);
-            *data << float(shape.BoxDatas.ExtentsTarget[2]);
-        }
-
-        if (hasAreaTriggerPolygon)
-        {
-            *data << int32(shape.PolygonVertices.size());
-            *data << int32(shape.PolygonVerticesTarget.size());
-            *data << float(shape.PolygonDatas.Height);
-            *data << float(shape.PolygonDatas.HeightTarget);
-
-            for (TaggedPosition<Position::XY> const& vertice : shape.PolygonVertices)
-                *data << vertice;
-
-            for (TaggedPosition<Position::XY> const& vertice : shape.PolygonVerticesTarget)
-                *data << vertice;
-        }
-
-        if (hasAreaTriggerCylinder)
-        {
-            *data << float(shape.CylinderDatas.Radius);
-            *data << float(shape.CylinderDatas.RadiusTarget);
-            *data << float(shape.CylinderDatas.Height);
-            *data << float(shape.CylinderDatas.HeightTarget);
-            *data << float(shape.CylinderDatas.LocationZOffset);
-            *data << float(shape.CylinderDatas.LocationZOffsetTarget);
-        }
-
-        if (hasDisk)
-        {
-            *data << float(shape.DiskDatas.InnerRadius);
-            *data << float(shape.DiskDatas.InnerRadiusTarget);
-            *data << float(shape.DiskDatas.OuterRadius);
-            *data << float(shape.DiskDatas.OuterRadiusTarget);
-            *data << float(shape.DiskDatas.Height);
-            *data << float(shape.DiskDatas.HeightTarget);
-            *data << float(shape.DiskDatas.LocationZOffset);
-            *data << float(shape.DiskDatas.LocationZOffsetTarget);
-        }
-
-        if (hasBoundedPlane)
-        {
-            *data << float(shape.BoundedPlaneDatas.Extents[0]);
-            *data << float(shape.BoundedPlaneDatas.Extents[1]);
-            *data << float(shape.BoundedPlaneDatas.ExtentsTarget[0]);
-            *data << float(shape.BoundedPlaneDatas.ExtentsTarget[1]);
-        }
-
         //if (hasMovementScript)
         //    *data << *areaTrigger->GetMovementScript(); // AreaTriggerMovementScriptInfo
 
@@ -632,17 +654,34 @@ void Object::BuildMovementUpdate(ByteBuffer* data, CreateObjectBits flags, Playe
 
     if (flags.GameObject)
     {
-        bool bit8 = false;
-        uint32 Int1 = 0;
-
         GameObject const* gameObject = ToGameObject();
+        Transport const* transport = gameObject->ToTransport();
+
+        bool bit8 = false;
 
         *data << uint32(gameObject->GetWorldEffectID());
 
         data->WriteBit(bit8);
+        data->WriteBit(transport != nullptr);
+        data->WriteBit(gameObject->GetPathProgressForClient().has_value());
         data->FlushBits();
+        if (transport)
+        {
+            uint32 period = transport->GetTransportPeriod();
+
+            *data << uint32((((int64(transport->GetTimer()) - int64(GameTime::GetGameTimeMS())) % period) + period) % period);  // TimeOffset
+            *data << uint32(transport->GetNextStopTimestamp().value_or(0));
+            data->WriteBit(transport->GetNextStopTimestamp().has_value());
+            data->WriteBit(transport->IsStopped());
+            data->WriteBit(false);
+            data->FlushBits();
+        }
+
         if (bit8)
-            *data << uint32(Int1);
+            *data << uint32(0);
+
+        if (gameObject->GetPathProgressForClient())
+            *data << float(*gameObject->GetPathProgressForClient());
     }
 
     if (flags.SmoothPhasing)
@@ -837,6 +876,7 @@ void Object::AddToObjectUpdateIfNeeded()
 void Object::ClearUpdateMask(bool remove)
 {
     m_values.ClearChangesMask(&Object::m_objectData);
+    m_entityFragments.IdsChanged = false;
 
     if (m_objectUpdated)
     {
@@ -1558,18 +1598,18 @@ SmoothPhasing* WorldObject::GetOrCreateSmoothPhasing()
     return _smoothPhasing.get();
 }
 
-bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bool distanceCheck, bool checkAlert) const
+bool WorldObject::CanSeeOrDetect(WorldObject const* obj, CanSeeOrDetectExtraArgs const& args /*= { }*/) const
 {
     if (this == obj)
         return true;
 
-    if (obj->IsNeverVisibleFor(this, implicitDetect) || CanNeverSee(obj))
+    if (obj->IsNeverVisibleFor(this, args.ImplicitDetection) || CanNeverSee(obj, args.IgnorePhaseShift))
         return false;
 
     if (obj->IsAlwaysVisibleFor(this) || CanAlwaysSee(obj))
         return true;
 
-    if (!obj->CheckPrivateObjectOwnerVisibility(this))
+    if (!args.IncludeAnyPrivateObject && !obj->CheckPrivateObjectOwnerVisibility(this))
         return false;
 
     if (SmoothPhasing const* smoothPhasing = obj->GetSmoothPhasing())
@@ -1580,7 +1620,7 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
         return false;
 
     bool corpseVisibility = false;
-    if (distanceCheck)
+    if (args.DistanceCheck)
     {
         bool corpseCheck = false;
         if (Player const* thisPlayer = ToPlayer())
@@ -1648,15 +1688,15 @@ bool WorldObject::CanSeeOrDetect(WorldObject const* obj, bool implicitDetect, bo
     if (obj->IsInvisibleDueToDespawn(this))
         return false;
 
-    if (!CanDetect(obj, implicitDetect, checkAlert))
+    if (!CanDetect(obj, args.ImplicitDetection, args.AlertCheck))
         return false;
 
     return true;
 }
 
-bool WorldObject::CanNeverSee(WorldObject const* obj) const
+bool WorldObject::CanNeverSee(WorldObject const* obj, bool ignorePhaseShift /*= false*/) const
 {
-    return GetMap() != obj->GetMap() || !InSamePhase(obj);
+    return GetMap() != obj->GetMap() || (!ignorePhaseShift && !InSamePhase(obj));
 }
 
 bool WorldObject::CanDetect(WorldObject const* obj, bool implicitDetect, bool checkAlert) const
@@ -2961,24 +3001,19 @@ SpellCastResult WorldObject::CastSpell(CastSpellTargetArg const& targets, uint32
     SpellInfo const* info = sSpellMgr->GetSpellInfo(spellId, args.CastDifficulty != DIFFICULTY_NONE ? args.CastDifficulty : GetMap()->GetDifficultyID());
     if (!info)
     {
-        TC_LOG_ERROR("entities.unit", "CastSpell: unknown spell {} by caster {}", spellId, GetGUID().ToString());
+        TC_LOG_ERROR("entities.unit", "CastSpell: unknown spell {} by caster {}", spellId, GetGUID());
         return SPELL_FAILED_SPELL_UNAVAILABLE;
     }
 
     if (!targets.Targets)
     {
-        TC_LOG_ERROR("entities.unit", "CastSpell: Invalid target passed to spell cast {} by {}", spellId, GetGUID().ToString());
+        TC_LOG_ERROR("entities.unit", "CastSpell: Invalid target passed to spell cast {} by {}", spellId, GetGUID());
         return SPELL_FAILED_BAD_TARGETS;
     }
 
     Spell* spell = new Spell(this, info, args.TriggerFlags, args.OriginalCaster, args.OriginalCastId);
-    for (auto const& [Type, Value] : args.SpellValueOverrides)
-    {
-        if (Type < SPELLVALUE_INT_END)
-            spell->SetSpellValue(SpellValueMod(Type), Value.I);
-        else
-            spell->SetSpellValue(SpellValueModFloat(Type), Value.F);
-    }
+    for (CastSpellExtraArgsInit::SpellValueOverride const& value : args.SpellValueOverrides)
+        spell->SetSpellValue(value);
 
     spell->m_CastItem = args.CastItem;
     if (args.OriginalCastItemLevel)
@@ -3093,11 +3128,16 @@ bool WorldObject::IsValidAttackTarget(WorldObject const* target, SpellInfo const
     if (unit)
     {
         // can't attack invisible
-        if (!bySpell || !bySpell->HasAttribute(SPELL_ATTR6_IGNORE_PHASE_SHIFT))
+        CanSeeOrDetectExtraArgs canSeeOrDetectExtraArgs;
+        if (bySpell)
         {
-            if (!unit->CanSeeOrDetect(target, bySpell && bySpell->IsAffectingArea()))
-                return false;
+            canSeeOrDetectExtraArgs.ImplicitDetection = bySpell->IsAffectingArea();
+            canSeeOrDetectExtraArgs.IgnorePhaseShift = bySpell->HasAttribute(SPELL_ATTR6_IGNORE_PHASE_SHIFT);
+            canSeeOrDetectExtraArgs.IncludeHiddenBySpawnTracking = bySpell->HasAttribute(SPELL_ATTR8_ALLOW_TARGETS_HIDDEN_BY_SPAWN_TRACKING);
+            canSeeOrDetectExtraArgs.IncludeAnyPrivateObject = bySpell->HasAttribute(SPELL_ATTR0_CU_CAN_TARGET_ANY_PRIVATE_OBJECT);
         }
+        if (!unit->CanSeeOrDetect(target, canSeeOrDetectExtraArgs))
+            return false;
     }
 
     // can't attack dead
@@ -3253,7 +3293,15 @@ bool WorldObject::IsValidAssistTarget(WorldObject const* target, SpellInfo const
     }
 
     // can't assist invisible
-    if ((!bySpell || !bySpell->HasAttribute(SPELL_ATTR6_IGNORE_PHASE_SHIFT)) && !CanSeeOrDetect(target, bySpell && bySpell->IsAffectingArea()))
+    CanSeeOrDetectExtraArgs canSeeOrDetectExtraArgs;
+    if (bySpell)
+    {
+        canSeeOrDetectExtraArgs.ImplicitDetection = bySpell->IsAffectingArea();
+        canSeeOrDetectExtraArgs.IgnorePhaseShift = bySpell->HasAttribute(SPELL_ATTR6_IGNORE_PHASE_SHIFT);
+        canSeeOrDetectExtraArgs.IncludeHiddenBySpawnTracking = bySpell->HasAttribute(SPELL_ATTR8_ALLOW_TARGETS_HIDDEN_BY_SPAWN_TRACKING);
+        canSeeOrDetectExtraArgs.IncludeAnyPrivateObject = bySpell->HasAttribute(SPELL_ATTR0_CU_CAN_TARGET_ANY_PRIVATE_OBJECT);
+    }
+    if (!CanSeeOrDetect(target, canSeeOrDetectExtraArgs))
         return false;
 
     // can't assist dead
@@ -3345,9 +3393,9 @@ Unit* WorldObject::GetMagicHitRedirectTarget(Unit* victim, SpellInfo const* spel
                     // Set up missile speed based delay
                     float hitDelay = spellInfo->LaunchDelay;
                     if (spellInfo->HasAttribute(SPELL_ATTR9_MISSILE_SPEED_IS_DELAY_IN_SEC))
-                        hitDelay += spellInfo->Speed;
+                        hitDelay += std::max(spellInfo->Speed, spellInfo->MinDuration);
                     else if (spellInfo->Speed > 0.0f)
-                        hitDelay += std::max(victim->GetDistance(this), 5.0f) / spellInfo->Speed;
+                        hitDelay += std::max(std::max(victim->GetDistance(this), 5.0f) / spellInfo->Speed, spellInfo->MinDuration);
 
                     uint32 delay = uint32(std::floor(hitDelay * 1000.0f));
                     // Schedule charge drop
