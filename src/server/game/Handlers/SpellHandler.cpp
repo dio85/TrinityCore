@@ -574,14 +574,57 @@ void WorldSession::HandleKeyboundOverride(WorldPackets::Spells::KeyboundOverride
 
 void WorldSession::HandleShowTradeSkillOpcode(WorldPackets::Spells::ShowTradeSkill& showTradeSkill)
 {
+    if (!sSkillLineStore.LookupEntry(showTradeSkill.SkillLineID) || !sSpellMgr->GetSpellInfo(showTradeSkill.SpellID, DIFFICULTY_NONE))
+        return;
 
-}
+    Player* player = ObjectAccessor::FindPlayer(showTradeSkill.PlayerGUID);
+    if (!player)
+        return;
 
-void WorldSession::HandleUpdateSpellVisualOpcode(WorldPackets::Spells::UpdateSpellVisual& packet)
-{
-    if (Aura* aura = GetPlayer()->GetAura(packet.SpellID))
+    std::set<uint32> relatedSkills;
+    relatedSkills.insert(showTradeSkill.SkillLineID);
+
+    for (SkillLineEntry const* skillLine : sSkillLineStore)
     {
-        aura->SetSpellXSpellVisualId(packet.SpellXSpellVisualId);
-        aura->SetNeedClientUpdateForTargets();
+        if (skillLine->ParentSkillLineID != uint32(showTradeSkill.SkillLineID))
+            continue;
+
+        if (!player->HasSkill(skillLine->ParentSkillLineID))
+            continue;
+
+        relatedSkills.insert(skillLine->ParentSkillLineID);
     }
+
+    std::set<uint32> profSpells;
+    for (auto const& v : player->GetSpellMap())
+    {
+        if (v.second.state == PLAYERSPELL_REMOVED)
+            continue;
+
+        if (!v.second.active || v.second.disabled)
+            continue;
+
+        for (auto const& s : relatedSkills)
+            if (IsPartOfSkillLine(s, v.first))
+                profSpells.insert(v.first);
+    }
+
+    if (profSpells.empty())
+        return;
+
+    WorldPackets::Spells::ShowTradeSkillResponse response;
+    response.PlayerGUID = showTradeSkill.PlayerGUID;
+    response.SpellId = showTradeSkill.SpellID;
+
+    for (uint32 const& x : profSpells)
+        response.KnownAbilitySpellIDs.push_back(x);
+
+    for (uint32 const& v : relatedSkills)
+    {
+        response.SkillLineIDs.push_back(v);
+        response.SkillRanks.push_back(player->GetSkillValue(v));
+        response.SkillMaxRanks.push_back(player->GetMaxSkillValue(v));
+    }
+
+    _player->SendDirectMessage(response.Write());
 }
