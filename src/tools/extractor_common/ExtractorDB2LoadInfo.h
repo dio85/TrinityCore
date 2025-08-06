@@ -90,7 +90,7 @@ struct LiquidMaterialLoadInfo
         { FT_BYTE, 1, true },
     };
 
-    static constexpr DB2Meta MetaInstance{ 1132538, -1, 2, 2, 0x01033D2A, MetaFields, -1 };
+    static constexpr DB2Meta MetaInstance{ 1132538, -1, 2, 2, 0x98E5D7AA, MetaFields, -1 };
 
     static constexpr DB2FieldMeta Fields[3] =
     {
@@ -155,7 +155,7 @@ struct LiquidTypeLoadInfo
         { FT_FLOAT, 4, true },
     };
 
-    static constexpr DB2Meta MetaInstance{ 1371380, -1, 21, 21, 0x95DB15B6, MetaFields, -1 };
+    static constexpr DB2Meta MetaInstance{ 1371380, -1, 21, 21, 0x4397CEE6, MetaFields, -1 };
 
     static constexpr DB2FieldMeta Fields[56] =
     {
@@ -249,7 +249,7 @@ struct MapLoadInfo
         { FT_INT, 3, true },
     };
 
-    static constexpr DB2Meta MetaInstance{ 1349477, -1, 23, 23, 0x32401DC5, MetaFields, -1 };
+    static constexpr DB2Meta MetaInstance{ 1349477, -1, 23, 23, 0xB47C6F05, MetaFields, -1 };
 
     static constexpr DB2FieldMeta Fields[26] =
     {

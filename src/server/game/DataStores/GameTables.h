@@ -297,6 +297,10 @@ struct GtSpellScalingEntry
     float Druid = 0.0f;
     float Item = 0.0f;
     float Consumable = 0.0f;
+    float Unknown = 0.0f;
+    float Unknown1 = 0.0f;
+    float Unknown2 = 0.0f;
+    float Unknown3 = 0.0f;
 };
 
 struct GtTeamContributionPointsEntry
@@ -331,8 +335,8 @@ TC_GAME_API extern GameTable<GtChanceToSpellCritEntry>              sChanceToSpe
 TC_GAME_API extern GameTable<GtChanceToSpellCritBaseEntry>          sChanceToSpellCritBaseGameTable;
 TC_GAME_API extern GameTable<GtCombatRatingsEntry>                  sCombatRatingsGameTable;
 TC_GAME_API extern GameTable<GtNpcManaCostScalerEntry>              sNpcManaCostScalerGameTable;
-TC_GAME_API extern GameTable<GtNpcDamageByClassEntry>               sNpcDamageByClassGameTable[MAX_CLASSIC_EXPANSIONS];
-TC_GAME_API extern GameTable<GtNpcTotalHpEntry>                     sNpcTotalHpGameTable[MAX_CLASSIC_EXPANSIONS];
+TC_GAME_API extern GameTable<GtNpcDamageByClassEntry>               sNpcDamageByClassGameTable[EXPANSION_MISTS_OF_PANDARIA];
+TC_GAME_API extern GameTable<GtNpcTotalHpEntry>                     sNpcTotalHpGameTable[EXPANSION_MISTS_OF_PANDARIA];
 TC_GAME_API extern GameTable<GtOctBaseHpByClassEntry>               sOctBaseHpByClassGameTable;
 TC_GAME_API extern GameTable<GtOctBaseMpByClassEntry>               sOctBaseMpByClassGameTable;
 TC_GAME_API extern GameTable<GtOctClassCombatRatingScalarEntry>     sOctClassCombatRatingScalarGameTable;

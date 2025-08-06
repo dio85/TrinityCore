@@ -198,12 +198,12 @@ bool LFGListMgr::Remove(ObjectGuid::LowType Guid, Player* requester /* = nullptr
     return true;
 }
 
-void LFGListMgr::PlayerAddedToGroup(Player* player, Group* group)
+void LFGListMgr::PlayerAddedToGroup(Player* /*player*/, Group* group)
 {
     SendLFGListStatusUpdate(GetEntrybyGuid(group->GetGUID().GetCounter()), nullptr, true);
 }
 
-void LFGListMgr::PlayerRemoveFromGroup(Player* player, Group* group)
+void LFGListMgr::PlayerRemoveFromGroup(Player* /*player*/, Group* group)
 {
     SendLFGListStatusUpdate(GetEntrybyGuid(group->GetGUID().GetCounter()), nullptr, false);
 }
@@ -448,7 +448,7 @@ bool LFGListMgr::IsActivityPvP(GroupFinderActivityEntry const* activity) const
     }
 }
 
-float LFGListMgr::GetPlayerItemLevelForActivity(GroupFinderActivityEntry const* activity, Player* player) const
+float LFGListMgr::GetPlayerItemLevelForActivity(GroupFinderActivityEntry const* /*activity*/, Player* player) const
 {
     if (player == nullptr)
         return 0.0f;
@@ -515,6 +515,7 @@ void LFGListMgr::SendLfgListApplyForGroupResult(LFGListEntry const* lfgEntry, LF
     if (!player)
         return;
 
+    uint8 role = 0;
     auto group = lfgEntry->ApplicationGroup;
     if (!group)
         return;
@@ -562,7 +563,7 @@ void LFGListMgr::SendLfgListApplyForGroupResult(LFGListEntry const* lfgEntry, LF
 
     for (auto const& member : group->GetMemberSlots())
     {
-        uint8 role = member.roles >= 2 ? std::log2(member.roles) - 1 : member.roles;
+        role = member.roles >= 2 ? std::log2(member.roles) - 1 : member.roles;
         responce.SearchResult.Members.emplace_back(member._class, member.roles);
     }
     for (auto const& member : lfgEntry->ApplicationsContainer)

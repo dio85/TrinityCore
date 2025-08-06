@@ -2085,7 +2085,7 @@ const GroupFinderActivityEntry* DB2Manager::GetActivityID(uint32 activityID)
 
 const GroupFinderActivityEntry* DB2Manager::FindActivityByID(const std::vector<GroupFinderActivityEntry>& activities, int32 activityID) {
     for (const auto& activity : activities) {
-        if (activity.ID == activityID) {
+        if (activity.ID == (uint32)activityID) {
             return &activity;
         }
     }
@@ -2257,8 +2257,6 @@ int32 DB2Manager::GetNumTalentsAtLevel(uint32 level, Classes playerClass)
         {
             case CLASS_DEATH_KNIGHT:
                 return numTalentsAtLevel->NumTalentsDeathKnight;
-            case CLASS_DEMON_HUNTER:
-                return numTalentsAtLevel->NumTalentsDemonHunter;
             default:
                 return numTalentsAtLevel->NumTalents;
         }

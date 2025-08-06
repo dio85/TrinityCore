@@ -218,6 +218,7 @@ struct BattlePetAbilityEntry
 struct BattlePetBreedQualityEntry
 {
     uint32 ID;
+    int32 MaxQualityRoll;
     float StateMultiplier;
     uint8 QualityEnum;
 };
@@ -399,7 +400,11 @@ struct ChrClassesEntry
     LocalizedString NameMale;
     LocalizedString NameFemale;
     char const* PetNameToken;
-    uint32 ID;
+    LocalizedString Description;
+    LocalizedString RoleInfoString;
+    LocalizedString DisabledString;
+    LocalizedString HyphenatedNamemale;
+    LocalizedString HyphenatedNamefemale;
     uint32 CreateScreenFileDataID;
     uint32 SelectScreenFileDataID;
     uint32 IconFileDataID;
@@ -408,15 +413,28 @@ struct ChrClassesEntry
     int32 StartingLevel;
     uint32 SpellTextureBlobFileDataID;
     uint32 ArmorTypeMask;
+    int32 Field55061411018;
+    int32 Field55061411019;
+    int32 Field55061411020;
+    int32 Field55061411021;
+    int32 Field55061411022;
+    int32 Field55061411023;
+    int32 Field55061411024;
+    int32 Field55061411025;
+    int32 Field55061411026;
     uint16 CinematicSequenceID;
     uint16 DefaultSpec;
+    uint8 ID;
     uint8 HasStrengthAttackBonus;
-    uint8 PrimaryStatPriority;
+    int8 PrimaryStatPriority;
     int8 DisplayPower;
     uint8 RangedAttackPowerPerAgility;
     uint8 AttackPowerPerAgility;
     uint8 AttackPowerPerStrength;
     uint8 SpellClassSet;
+    uint8 ClassColorR;
+    uint8 ClassColorG;
+    uint8 ClassColorB;
     uint8 RolesMask;
     uint8 DamageBonusStat;
     uint8 HasRelicSlot;
@@ -499,14 +517,15 @@ struct ChrCustomizationReqEntry
     Trinity::RaceMask<int64> RaceMask;
     LocalizedString ReqSource;
     uint32 ID;
-    int32 Flags;
+    int32 ReqType;
     int32 ClassMask;
+    int32 RegionGroupMask;
     int32 AchievementID;
     int32 QuestID;
     int32 OverrideArchive;                                          // -1: allow any, otherwise must match OverrideArchive cvar
     int32 ItemModifiedAppearanceID;
 
-    EnumFlag<ChrCustomizationReqFlag> GetFlags() const { return static_cast<ChrCustomizationReqFlag>(Flags); }
+    EnumFlag<ChrCustomizationReqFlag> GetFlags() const { return static_cast<ChrCustomizationReqFlag>(ClassMask); }
 };
 
 // structure for ChrCustomizationReqChoice.db2
@@ -662,6 +681,10 @@ struct ContentTuningEntry
     int32 Flags;
     int32 ExpectedStatModID;
     int32 DifficultyESMID;
+    int32 Field55060481006;
+    int32 Field55060481007;
+    int32 Field55060481008;
+    int32 Field55060481009;
 
     EnumFlag<ContentTuningFlag> GetFlags() const { return static_cast<ContentTuningFlag>(Flags); }
 
@@ -1539,13 +1562,12 @@ struct GuildPerkSpellsEntry
 // structure for GroupFinderActivity.db2
 struct GroupFinderActivityEntry
 {
-    int32 ID;
+    uint32 ID;
     LocalizedString FullName;
     LocalizedString ShortName;
     uint8 GroupFinderCategoryID;
     int8 OrderIndex;
-    int32 GroupFinderActivityGrpID;
-    uint8 Field34043659005;
+    uint16 GroupFinderActivityGrpID;
     uint32 Flags;
     uint16 MinGearLevelSuggestion;
     int32 PlayerConditionID;
@@ -1554,9 +1576,12 @@ struct GroupFinderActivityEntry
     uint16 AreaID;
     uint8 MaxPlayers;
     uint8 DisplayType;
-    uint8 MinLevel;
-    uint8 MaxLevelSuggestion;
-    int32 IconFileDataID;
+    int32 MinLevel;
+    int32 MaxLevel;
+    int32 MinLevelSuggestion;
+    int32 MaxLevelSuggestion;
+    int32 OverrideContentTuningID;
+    int32 MapChallengeModeID;
 };
 
 // structure for Heirloom.db2
@@ -1661,6 +1686,7 @@ struct ItemAppearanceEntry
     int32 ItemDisplayInfoID;
     int32 DefaultIconFileDataID;
     int32 UiOrder;
+    int32 TransmogPlayerConditionID;
 };
 
 // structure for ItemArmorQuality.db2
@@ -1732,9 +1758,9 @@ struct ItemBonusTreeNodeEntry
 struct ItemChildEquipmentEntry
 {
     uint32 ID;
+    uint32 ParentItemID;
     int32 ChildItemID;
     uint8 ChildItemEquipSlot;
-    uint32 ParentItemID;
 };
 
 // structure for ItemClass.db2
@@ -1744,7 +1770,7 @@ struct ItemClassEntry
     LocalizedString ClassName;
     int8 ClassID;
     float PriceModifier;
-    uint8 Flags;
+    int32 Flags;
 };
 
 // structure for ItemContextPickerEntry.db2
@@ -1905,6 +1931,7 @@ struct ItemModifiedAppearanceEntry
     int32 ItemAppearanceID;
     int32 OrderIndex;
     uint8 TransmogSourceTypeEnum;
+    int32 Flags;
 };
 
 // structure for ItemModifiedAppearanceExtra.db2
@@ -1924,6 +1951,7 @@ struct ItemNameDescriptionEntry
     uint32 ID;
     LocalizedString Description;
     int32 Color;
+    uint32 ItemID;
 };
 
 // structure for ItemPriceBase.db2
@@ -2394,10 +2422,12 @@ struct MapChallengeModeEntry
     LocalizedString Name;
     uint32 ID;
     uint16 MapID;
-    uint8 Flags;
+    int32 Flags;
     uint32 ExpansionLevel;
     int32 RequiredWorldStateID; // maybe?
     std::array<int16, 3> CriteriaCount;
+    std::array<int32, 6> Field55061000007;  // challange quest unrank to silver etc
+    std::array<int32, 6> Field55061000008;  // challange quest unrank to silver etc full same Field55061000007
 };
 
 // structure for MapDifficulty.db2
@@ -2533,8 +2563,8 @@ struct NameGenEntry
 {
     uint32 ID;
     char const* Name;
-    uint8 RaceID;
-    uint8 Sex;
+    int8 RaceID;
+    int8 Sex;
 };
 
 // structure for NamesProfanity.db2
@@ -2600,7 +2630,7 @@ struct PathEntry
     uint8 Green;
     uint8 Blue;
     uint8 Alpha;
-    uint8 Flags;
+    int32 Flags;
 };
 
 // structure for PathNode.db2
@@ -2969,6 +2999,7 @@ struct ScalingStatValuesEntry
     int32 Unk440_13;
     int32 Unk440_14;
     int32 Unk440_15;
+    int32 Field55061000030;
     std::array<int32, 4> ShoulderArmor;
     std::array<int32, 4> ChestArmor;
     std::array<int32, 4> HeadArmor;
@@ -3269,6 +3300,7 @@ struct SpellEffectEntry
     float Variance;
     float ResourceCoefficient;
     float GroupSizeBasePointsCoefficient;
+    float EffectBasePointsF;
     std::array<int32, 2> EffectMiscValue;
     std::array<uint32, 2> EffectRadiusIndex;
     flag128 EffectSpellClassMask;
@@ -3831,13 +3863,16 @@ struct TransmogSetEntry
     LocalizedString Name;
     uint32 ID;
     int32 ClassMask;
-    uint32 TrackingQuestID;
+    int32 TrackingQuestID;
     int32 Flags;
-    uint32 TransmogSetGroupID;
+    int32 TransmogSetGroupID;
     int32 ItemNameDescriptionID;
-    uint16 ParentTransmogSetID;
-    uint8 ExpansionID;
-    int16 UiOrder;
+    uint32 ParentTransmogSetID;
+    int32 CompleteWorldStateID;
+    int32 ExpansionID;
+    int32 PatchIntroduced;
+    int32 UiOrder;
+    int32 ConditionID;
 };
 
 // structure for TransmogSetGroup.db2

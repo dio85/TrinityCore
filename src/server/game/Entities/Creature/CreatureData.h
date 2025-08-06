@@ -562,12 +562,12 @@ struct TC_GAME_API CreatureTemplate
 // Defines base stats for creatures (used to calculate HP/mana/armor/attackpower/rangedattackpower/all damage).
 struct TC_GAME_API CreatureBaseStats
 {
-    std::array<uint32, MAX_CLASSIC_EXPANSIONS> BaseHealth;
+    std::array<uint32, CURRENT_EXPANSION> BaseHealth;
     uint32 BaseMana = 0;
     uint32 BaseArmor = 0;
     uint32 AttackPower = 0;
     uint32 RangedAttackPower = 0;
-    std::array<float, MAX_CLASSIC_EXPANSIONS> BaseDamage;
+    std::array<float, CURRENT_EXPANSION> BaseDamage;
 
     // Helpers
 

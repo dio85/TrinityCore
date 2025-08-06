@@ -91,9 +91,9 @@ enum Expansions
     EXPANSION_THE_BURNING_CRUSADE      = 1,
     EXPANSION_WRATH_OF_THE_LICH_KING   = 2,
     EXPANSION_CATACLYSM                = 3,
+    EXPANSION_MISTS_OF_PANDARIA        = 4,
     MAX_CLASSIC_EXPANSIONS,
 
-    EXPANSION_MISTS_OF_PANDARIA        = 4,
     EXPANSION_WARLORDS_OF_DRAENOR      = 5,
     EXPANSION_LEGION                   = 6,
     EXPANSION_BATTLE_FOR_AZEROTH       = 7,
@@ -105,7 +105,7 @@ enum Expansions
     MAX_ACCOUNT_EXPANSIONS
 };
 
-#define CURRENT_EXPANSION EXPANSION_CATACLYSM
+#define CURRENT_EXPANSION EXPANSION_MISTS_OF_PANDARIA
 
 constexpr uint32 GetMaxLevelForExpansion(uint32 expansion)
 {
@@ -118,14 +118,16 @@ constexpr uint32 GetMaxLevelForExpansion(uint32 expansion)
         case EXPANSION_WRATH_OF_THE_LICH_KING:
             return 80;
         case EXPANSION_CATACLYSM:
+            return 85;
         case EXPANSION_MISTS_OF_PANDARIA: // unsupported expansions will return the same max level as the support one to correctly function (see Player::InitStatsForLevel)
+            return 90;
         case EXPANSION_WARLORDS_OF_DRAENOR:
         case EXPANSION_LEGION:
         case EXPANSION_BATTLE_FOR_AZEROTH:
         case EXPANSION_SHADOWLANDS:
         case EXPANSION_DRAGONFLIGHT:
         case EXPANSION_THE_WAR_WITHIN:
-            return 85;
+            return 90;
         default:
             break;
     }
@@ -155,14 +157,11 @@ enum Classes : uint8
     CLASS_MAGE          = 8,  // TITLE Mage
     CLASS_WARLOCK       = 9,  // TITLE Warlock
     CLASS_MONK          = 10, // TITLE Monk
-    CLASS_DRUID         = 11, // TITLE Druid
-    CLASS_DEMON_HUNTER  = 12, // TITLE Demon Hunter
-    CLASS_EVOKER        = 13, // TITLE Evoker
-    CLASS_ADVENTURER    = 14  // TITLE Adventurer
+    CLASS_DRUID         = 11 // TITLE Druid
 };
 
 // max+1 for player class
-#define MAX_CLASSES       15
+#define MAX_CLASSES       12
 
 #define CLASSMASK_ALL_PLAYABLE     \
     ((1<<(CLASS_WARRIOR-1))      | \
@@ -175,9 +174,7 @@ enum Classes : uint8
      (1<<(CLASS_MAGE-1))         | \
      (1<<(CLASS_WARLOCK-1))      | \
      (1<<(CLASS_MONK-1))         | \
-     (1<<(CLASS_DRUID-1))        | \
-     (1<<(CLASS_DEMON_HUNTER-1)) | \
-     (1<<(CLASS_EVOKER-1)))
+     (1<<(CLASS_DRUID-1)))
 
 enum PlayerSpecializations : uint8
 {
@@ -345,7 +342,9 @@ enum Powers : int8
     POWER_ALTERNATE_MOUNT               = 25, // TITLE Alternate (Mount)
     POWER_BALANCE                       = 26, // TITLE Balance
     POWER_HAPPINESS                     = 27, // TITLE Happiness
-    MAX_POWERS                          = 28, // SKIP
+    POWER_SHADOW_ORB_COST               = 28, // TITLE Shadow orbs
+    POWER_RUNSE_COST_CHROMATIC          = 29, // TITLE Rune chromatic
+    MAX_POWERS                          = 30, // SKIP
     POWER_ALL                           = 127 // SKIP
 };
 
@@ -5543,7 +5542,7 @@ constexpr uint8 ClassByQuestSort(int32 QuestSort)
         case QUEST_SORT_PRIEST:         return CLASS_PRIEST;
         case QUEST_SORT_DRUID:          return CLASS_DRUID;
         case QUEST_SORT_DEATH_KNIGHT:   return CLASS_DEATH_KNIGHT;
-        case QUEST_SORT_DEMON_HUNTER:   return CLASS_DEMON_HUNTER;
+        case QUEST_SORT_MONK:           return CLASS_MONK;
     }
     return 0;
 }

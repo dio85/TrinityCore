@@ -710,6 +710,24 @@ enum AuraType : uint32
     SPELL_AURA_MOD_SPELL_COOLDOWN_BY_HASTE                  = 622,
     SPELL_AURA_MOD_GATHERING_ITEMS_GAINED_PERCENT           = 623, // NYI
     SPELL_AURA_MOD_DAMAGE_FROM_MANA                         = 624, // NYI
+    SPELL_AURA_MOD_625                                      = 625, // NYI
+    SPELL_AURA_MOD_626                                      = 626, // NYI
+    SPELL_AURA_MOD_627                                      = 627, // NYI
+    SPELL_AURA_MOD_628                                      = 628, // NYI
+    SPELL_AURA_MOD_629                                      = 629, // NYI
+    SPELL_AURA_MOD_630                                      = 630, // NYI
+    SPELL_AURA_MOD_631                                      = 631, // NYI
+    SPELL_AURA_MOD_632                                      = 632, // NYI
+    SPELL_AURA_MOD_633                                      = 633, // NYI
+    SPELL_AURA_MOD_634                                      = 634, // NYI
+    SPELL_AURA_MOD_635                                      = 635, // NYI
+    SPELL_AURA_MOD_636                                      = 636, // NYI
+    SPELL_AURA_MOD_637                                      = 637, // NYI
+    SPELL_AURA_MOD_638                                      = 638, // NYI
+    SPELL_AURA_MOD_639                                      = 639, // NYI
+    SPELL_AURA_MOD_640                                      = 640, // NYI
+    SPELL_AURA_MOD_641                                      = 641, // NYI
+    SPELL_AURA_MOD_642                                      = 642, // NYI
 
     TOTAL_AURAS
 };
