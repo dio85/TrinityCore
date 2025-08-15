@@ -1497,7 +1497,6 @@ class TC_GAME_API ObjectMgr
         uint64 GenerateEquipmentSetGuid();
         uint64 GenerateMailID();
         uint32 GeneratePetNumber();
-        uint64 GenerateVoidStorageItemId();
         ObjectGuid::LowType GenerateCreatureSpawnId();
         ObjectGuid::LowType GenerateGameObjectSpawnId();
 
@@ -1569,7 +1568,7 @@ class TC_GAME_API ObjectMgr
             if (itr == _creatureDataStore.end()) return nullptr;
             return &itr->second;
         }
-        CreatureData& NewOrExistCreatureData(ObjectGuid::LowType spawnId) { return _creatureDataStore[spawnId]; }
+        CreatureData& NewOrExistCreatureData(ObjectGuid::LowType spawnId);
         void DeleteCreatureData(ObjectGuid::LowType spawnId);
         ObjectGuid GetLinkedRespawnGuid(ObjectGuid spawnId) const
         {
@@ -1590,7 +1589,7 @@ class TC_GAME_API ObjectMgr
             if (itr == _gameObjectDataStore.end()) return nullptr;
             return &itr->second;
         }
-        GameObjectData& NewOrExistGameObjectData(ObjectGuid::LowType spawnId) { return _gameObjectDataStore[spawnId]; }
+        GameObjectData& NewOrExistGameObjectData(ObjectGuid::LowType spawnId);
         void DeleteGameObjectData(ObjectGuid::LowType spawnId);
         GameObjectLocale const* GetGameObjectLocale(uint32 entry) const
         {
@@ -1833,7 +1832,6 @@ class TC_GAME_API ObjectMgr
         std::atomic<uint32> _hiPetNumber;
         ObjectGuid::LowType _creatureSpawnId;
         ObjectGuid::LowType _gameObjectSpawnId;
-        uint64 _voidItemId;
 
         // first free low guid for selected guid type
         ObjectGuidGenerator& GetGuidSequenceGenerator(HighGuid high);

@@ -35,7 +35,7 @@ ScenarioMgr* ScenarioMgr::Instance()
     return &instance;
 }
 
-InstanceScenario* ScenarioMgr::CreateInstanceScenario(InstanceMap* map, TeamId team) const
+InstanceScenario* ScenarioMgr::CreateInstanceScenarioForTeam(InstanceMap* map, TeamId team) const
 {
     auto dbDataItr = _scenarioDBData.find(std::make_pair(map->GetId(), map->GetDifficultyID()));
     // No scenario registered for this map and difficulty in the database
@@ -55,10 +55,15 @@ InstanceScenario* ScenarioMgr::CreateInstanceScenario(InstanceMap* map, TeamId t
         break;
     }
 
+    return CreateInstanceScenario(map, scenarioID);
+}
+
+InstanceScenario* ScenarioMgr::CreateInstanceScenario(InstanceMap* map, uint32 scenarioID) const
+{
     auto itr = _scenarioData.find(scenarioID);
     if (itr == _scenarioData.end())
     {
-        TC_LOG_ERROR("scenario", "Table `scenarios` contained data linking scenario (Id: {}) to map (Id: {}), difficulty (Id: {}) but no scenario data was found related to that scenario Id.", scenarioID, map->GetId(), map->GetDifficultyID());
+        TC_LOG_ERROR("scenario", "No scenario data was found related to scenario (Id: {}) for map (Id: {}), difficulty (Id: {}).", scenarioID, map->GetId(), map->GetDifficultyID());
         return nullptr;
     }
 

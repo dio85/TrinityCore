@@ -101,7 +101,7 @@ namespace WorldPackets
 
             void Read() override;
 
-            Array<LootRequest, 1000> Loot;
+            Array<LootRequest, 100> Loot;
             bool IsSoftInteract = false;
         };
 
@@ -112,7 +112,7 @@ namespace WorldPackets
 
             void Read() override;
 
-            Array<LootRequest, 1000> Loot;
+            Array<LootRequest, 100> Loot;
             ObjectGuid Target;
         };
 

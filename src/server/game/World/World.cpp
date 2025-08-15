@@ -1494,6 +1494,11 @@ void World::LoadConfigSettings(bool reload)
     m_bool_configs[CONFIG_LOAD_LOCALES] = sConfigMgr->GetBoolDefault("Load.Locales", true);
 
     // call ScriptMgr if we're reloading the configuration
+    _gameRules =
+    {
+        { .Rule = ::GameRule::TransmogEnabled, .Value = true }
+    };
+
     if (reload)
     {
         sSupportMgr->SetSupportSystemStatus(m_bool_configs[CONFIG_SUPPORT_ENABLED]);
