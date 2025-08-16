@@ -38,6 +38,7 @@
 #include "Timer.h"
 #include "UniqueTrackablePtr.h"
 #include "WorldStateDefines.h"
+#include "QuaternionData.h"
 #include <bitset>
 #include <list>
 #include <map>
@@ -852,7 +853,6 @@ class TC_GAME_API Map : public GridRefManager<NGridType>
     public:
         void SetSpawnMode(Difficulty difficulty);
         void ApplyOnEveryPlayer(std::function<void(Player*)> function);
-        uint32 GetPlayerCount() const { return m_mapRefManager.getSize(); }
 
 
         /*********************************************************/

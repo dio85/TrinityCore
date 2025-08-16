@@ -12389,12 +12389,21 @@ struct LFGDungeonsGroupingMapMeta
 {
     static constexpr DB2MetaField Fields[3] =
     {
-        { FT_SHORT, 1, false },
-        { FT_BYTE, 1, false },
-        { FT_INT, 1, true },
+        { .Type = FT_SHORT, .ArraySize = 1, .IsSigned = false },
+        { .Type = FT_BYTE, .ArraySize = 1, .IsSigned = false },
+        { .Type = FT_INT, .ArraySize  = 1, .IsSigned = true },
     };
 
-    static constexpr DB2Meta Instance{ 1339818 , -1, 3, 2, 0x105EA15A, Fields, 2 };
+    static constexpr DB2Meta Instance =
+    {
+        .FileDataId       = 1339818,
+        .IndexField       = -1,
+        .ParentIndexField = 3,
+        .FieldCount       = 2,
+        .FileFieldCount   = 2,
+        .LayoutHash       = 0x105EA15A,
+        .Fields           = Fields
+    };
 };
 
 struct LFGRoleRequirementMeta

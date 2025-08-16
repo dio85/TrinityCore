@@ -486,17 +486,6 @@ float LFGListMgr::GetPlayerItemLevelForActivity(GroupFinderActivityEntry const* 
     return avgItemLevel + activityOffset;
 }
 
-float LFGListMgr::GetLowestItemLevelInGroup(LFGListEntry* entry) const
-{
-    auto minIlvl = 100000.0f;
-
-    for (auto ref = entry->ApplicationGroup->GetFirstMember(); ref != nullptr; ref = ref->next())
-        if (auto player = ref->GetSource())
-            minIlvl = std::min(minIlvl, GetPlayerItemLevelForActivity(entry->GroupFinderActivityData, player));
-
-    return minIlvl != 100000.0f ? minIlvl : 0.0f;
-}
-
 uint8 LFGListMgr::GetMemeberCountInGroupIncludingInvite(LFGListEntry* entry)
 {
     return CountEntryApplicationsWithStatus(entry, LFGListApplicationStatus::InviteDeclined) + entry->ApplicationGroup->GetMembersCount();

@@ -159,25 +159,20 @@ namespace WorldPackets
         {
             ObjectGuid CastID;
             int32 SpellID = 0;
-            int32 SpellXSpellVisualID = 0;
             SpellCastVisual Visual;
             uint16 Flags = 0;
             uint32 ActiveFlags = 0;
-            uint16 CastLevel = 0;
-            uint8 Applications = 0;
+            uint16 CastLevel = 1;
+            uint8 Applications = 1;
             int32 ContentTuningID = 0;
-            bool HasCastUnit = false;
-            bool HasDuration = false;
-            bool HasRemaining = false;
-            bool HasTimeMod = false;
-            std::vector<float> Points;
-            std::vector<float> EstimatedPoints;
-            bool HasContentTuning = false;
             Optional<ContentTuningParams> ContentTuning;
             Optional<ObjectGuid> CastUnit;
             Optional<int32> Duration;
             Optional<int32> Remaining;
             Optional<float> TimeMod;
+            std::vector<float> Points;
+            std::vector<float> EstimatedPoints;
+            TaggedPosition<Position::XYZ> DstLocation;
         };
 
         struct AuraInfo

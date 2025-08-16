@@ -16,6 +16,7 @@
  */
 
 #include "MythicPlusPacketsCommon.h"
+#include "PacketOperators.h"
 #include "WowTime.h"
 
 namespace WorldPackets
@@ -153,7 +154,7 @@ namespace WorldPackets
                 _worldPacket << Rewards[i].Unk3;
                 _worldPacket << Rewards[i].Unk4;
                 _worldPacket << Rewards[i].Unk5;
-                _worldPacket << Rewards[i].UnknownBool;
+                _worldPacket.WriteBit(Rewards[i].UnknownBool);
             }
 
             return &_worldPacket;

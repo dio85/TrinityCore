@@ -3247,7 +3247,6 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
 
         PlayerCurrenciesMap _currencyStorage;
 
-        VoidStorageItem* _voidStorageItems[VOID_STORAGE_MAX_SLOT];
         typedef std::unordered_map<uint32, WorldQuestInfo> WorldQuestStatusMap;
 
         std::vector<Item*> m_itemUpdateQueue;

@@ -590,15 +590,6 @@ void WorldSession::HandleUpdateMissileTrajectory(WorldPackets::Spells::UpdateMis
         HandleMovementOpcode(CMSG_MOVE_STOP, *packet.Status);
 }
 
-void WorldSession::HandleUpdateSpellVisualOpcode(WorldPackets::Spells::UpdateSpellVisual& packet)
-{
-    if (Aura* aura = GetPlayer()->GetAura(packet.SpellID))
-    {
-        aura->SetSpellXSpellVisualId(packet.SpellXSpellVisualId);
-        aura->SetNeedClientUpdateForTargets();
-    }
-}
-
 void WorldSession::HandleUpdateAuraVisual(WorldPackets::Spells::UpdateAuraVisual const& updateAuraVisual)
 {
     Unit* target = ObjectAccessor::GetUnit(*_player, updateAuraVisual.TargetGUID);

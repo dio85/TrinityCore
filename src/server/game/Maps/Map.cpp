@@ -3421,7 +3421,7 @@ bool Map::GetEntrancePos(int32 &mapid, float &x, float &y)
 void Map::ApplyOnEveryPlayer(std::function<void(Player*)> function)
 {
     auto const& players = GetPlayers();
-    if (players.isEmpty())
+    if (players.empty())
         return;
 
     for (auto const& itr : players)

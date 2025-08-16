@@ -160,7 +160,7 @@ WorldPacket const* WorldPackets::LfgList::LfgListUpdateStatus::Write()
 
 void WorldPackets::LfgList::LFGListClubFinderRequestPendingClubList::Read()
 {
-    _worldPacket >> Queued;
+    Queued = _worldPacket.ReadBit();
 }
 
 void WorldPackets::LfgList::LfgListInviteResponse::Read()

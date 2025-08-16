@@ -4618,13 +4618,7 @@ void ObjectMgr::LoadQuests()
         Field* fields = result->Fetch();
 
         uint32 questId = fields[0].GetUInt32();
-
-        Quest* newQuest = new Quest(fields);
-
-        if (newQuest->IsWorldQuest() || newQuest->IsEmissaryQuest())
-            _worldQuestStore[newQuest->_questInfoID].push_back(newQuest->GetQuestId());
-
-        auto itr = _questTemplates.emplace(std::piecewise_construct, std::forward_as_tuple(questId), std::forward_as_tuple(new Quest(fields))).first;
+        auto itr = _questTemplates.emplace(std::piecewise_construct, std::forward_as_tuple(questId), std::forward_as_tuple(new Quest(result))).first;
         itr->second->_weakRef = itr->second;
         if (itr->second->IsAutoPush())
             _questTemplatesAutoPush.push_back(itr->second.get());
@@ -11288,7 +11282,7 @@ void ObjectMgr::LoadPlayerChoices()
         do
         {
             DEFINE_FIELD_ACCESSOR_CACHE_ANONYMOUS(ResultSet, (ChoiceId)(ResponseId)(TitleId)(PackageId)(SkillLineId)
-                (SkillPointCount)(ArenaPointCount)(HonorPointCount)(Money)(Xp)) fields{ *rewards };
+                (SkillPointCount)(ArenaPointCount)(HonorPointCount)(Money)(Xp)(SpellID)) fields{ *rewards };
 
             int32 choiceId      = fields.ChoiceId().GetInt32();
             int32 responseId    = fields.ResponseId().GetInt32();
@@ -11317,7 +11311,7 @@ void ObjectMgr::LoadPlayerChoices()
             reward->HonorPointCount  = fields.HonorPointCount().GetUInt32();
             reward->Money            = fields.Money().GetUInt64();
             reward->Xp               = fields.Xp().GetUInt32();
-            reward->SpellID          = fields.SpellID.GetUInt32();
+            reward->SpellID          = fields.SpellID().GetUInt32();
             ++rewardCount;
 
             if (reward->TitleId && !sCharTitlesStore.LookupEntry(reward->TitleId))

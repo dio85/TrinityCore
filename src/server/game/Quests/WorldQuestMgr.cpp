@@ -632,7 +632,7 @@ void WorldQuestMgr::BuildRewardPacket(Player* player, uint32 questId, uint32 tre
             itemReward.Item.ItemBonus->BonusListIDs = WorldPackets::Item::ItemBonuses().BonusListIDs;
             WorldPackets::Query::TreasurePickItem itemRew;
             itemRew.Quantity = worldQuestReward->RewardCount;
-            packet.Pick.Items.push_back(itemReward);
+            packet.Treasure.ItemPicks.push_back(itemReward);
             break;
         }
         case WORLD_QUEST_REWARD_CURRENCY:
@@ -640,12 +640,12 @@ void WorldQuestMgr::BuildRewardPacket(Player* player, uint32 questId, uint32 tre
             WorldPackets::Query::TreasurePickCurrency currencyReward;
             currencyReward.CurrencyID = worldQuestReward->RewardId;
             currencyReward.Quantity = worldQuestReward->RewardCount;
-            packet.Pick.Currencies.push_back(currencyReward);
+            packet.Treasure.CurrencyPicks.push_back(currencyReward);
             break;
         }
         case WORLD_QUEST_REWARD_GOLD:
         {
-            packet.Pick.Money = worldQuestReward->RewardCount;
+            packet.Treasure.Gold = worldQuestReward->RewardCount;
             break;
         }
         default:
@@ -657,7 +657,7 @@ void WorldQuestMgr::BuildRewardPacket(Player* player, uint32 questId, uint32 tre
     {
         WorldPackets::Query::TreasurePickerResponse response;
         response.TreasurePickerID = rewP->TreasurePickerID;
-        response.Pick.Money = rewP->Money;
+        response.Treasure.Gold = rewP->Money;
     }
 
 }

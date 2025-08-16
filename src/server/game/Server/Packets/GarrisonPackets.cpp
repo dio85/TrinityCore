@@ -485,7 +485,7 @@ WorldPacket const* GarrisonBuildingActivated::Write()
 }
 WorldPacket const* GarrisonCovenantRenownSendCatchupState::Write()
 {
-    _worldPacket << CatchupState;
+    _worldPacket.WriteBit(CatchupState);
 
     return &_worldPacket;
 }

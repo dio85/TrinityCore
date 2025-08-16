@@ -872,19 +872,6 @@ namespace WorldPackets
             std::vector<uint32> QuestLineIDs;
         };
 
-        
-
-        class IsQuestCompleteResponse final : public ServerPacket
-        {
-        public:
-            explicit UiMapQuestLinesRequest(WorldPacket&& packet) : ClientPacket(CMSG_UI_MAP_QUEST_LINES_REQUEST, std::move(packet)) { }
-
-            WorldPacket const* Write() override;
-
-            uint32 QuestID = 0;
-            bool Complete = false;
-        };
-
         class ShowQuestCompletionText final : public ServerPacket
         {
         public:
@@ -940,6 +927,17 @@ namespace WorldPackets
             WorldPacket const* Write() override;
 
             int32 QuestID = 0;
+        };
+
+        class IsQuestCompleteResponse final : ServerPacket
+        {
+        public:
+            explicit IsQuestCompleteResponse() : ServerPacket(SMSG_IS_QUEST_COMPLETE_RESPONSE) { }
+
+            WorldPacket const* Write() override;
+
+            uint32 QuestID = 0;
+            bool Complete = false;
         };
     }
 }
