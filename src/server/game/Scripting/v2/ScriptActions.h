@@ -23,65 +23,65 @@
 
 namespace Scripting::v2
 {
-class ActionBase;
+    class ActionBase;
 
-template<typename T>
-class ActionResultSetter;
+    template<typename T>
+    class ActionResultSetter;
 
-class ActionBase
-{
-public:
-    ActionBase();
-    ActionBase(ActionBase const& other);
-    ActionBase(ActionBase&& other) noexcept;
-    ActionBase& operator=(ActionBase const& other);
-    ActionBase& operator=(ActionBase&& other) noexcept;
-    virtual ~ActionBase();
-
-    virtual bool IsReady() const noexcept;
-
-protected:
-    friend void MarkActionCompleted(ActionBase& action);
-    void MarkCompleted() noexcept;
-
-private:
-    bool _isReady;
-};
-
-class WaitAction : public ActionBase
-{
-public:
-    explicit WaitAction(TimePoint waitEnd);
-
-    bool IsReady() const noexcept override;
-
-private:
-    TimePoint _waitEnd;
-};
-
-template<typename T>
-class ActionResult : public ActionBase
-{
-public:
-    [[nodiscard]] static ActionResultSetter<T> GetResultSetter(std::shared_ptr<ActionResult> action)
+    class ActionBase
     {
-        T* resultPtr = &action->_result;
-        return ActionResultSetter<T>(std::move(action), resultPtr);
-    }
+    public:
+        ActionBase();
+        ActionBase(ActionBase const& other);
+        ActionBase(ActionBase&& other) noexcept;
+        ActionBase& operator=(ActionBase const& other);
+        ActionBase& operator=(ActionBase&& other) noexcept;
+        virtual ~ActionBase();
 
-private:
-    T _result = { };
-};
+        virtual bool IsReady() const noexcept;
 
-template<>
-class ActionResult<void> : public ActionBase
-{
-public:
-    [[nodiscard]] static ActionResultSetter<void> GetResultSetter(std::shared_ptr<ActionResult> action)
+    protected:
+        friend void MarkActionCompleted(ActionBase& action);
+        void MarkCompleted() noexcept;
+
+    private:
+        bool _isReady;
+    };
+
+    class WaitAction : public ActionBase
     {
-        return ActionResultSetter<void>(std::move(action));
-    }
-};
+    public:
+        explicit WaitAction(TimePoint waitEnd);
+
+        bool IsReady() const noexcept override;
+
+    private:
+        TimePoint _waitEnd;
+    };
+
+    template<typename T>
+    class ActionResult : public ActionBase
+    {
+    public:
+        [[nodiscard]] static ActionResultSetter<T> GetResultSetter(std::shared_ptr<ActionResult> action)
+        {
+            T* resultPtr = &action->_result;
+            return ActionResultSetter<T>(std::move(action), resultPtr);
+        }
+
+    private:
+        T _result = { };
+    };
+
+    template<>
+    class ActionResult<void> : public ActionBase
+    {
+    public:
+        [[nodiscard]] static ActionResultSetter<void> GetResultSetter(std::shared_ptr<ActionResult> action)
+        {
+            return ActionResultSetter<void>(std::move(action));
+        }
+    };
 }
 
 #endif // TRINITYCORE_SCRIPT_ACTIONS_H

@@ -20,38 +20,38 @@
 
 namespace Scripting::v2
 {
-ActionBase::ActionBase() : _isReady(false)
-{
-}
+    ActionBase::ActionBase() : _isReady(false)
+    {
+    }
 
-ActionBase::ActionBase(ActionBase const& other) = default;
-ActionBase::ActionBase(ActionBase&& other) noexcept = default;
-ActionBase& ActionBase::operator=(ActionBase const& other) = default;
-ActionBase& ActionBase::operator=(ActionBase&& other) noexcept = default;
+    ActionBase::ActionBase(ActionBase const& other) = default;
+    ActionBase::ActionBase(ActionBase&& other) noexcept = default;
+    ActionBase& ActionBase::operator=(ActionBase const& other) = default;
+    ActionBase& ActionBase::operator=(ActionBase&& other) noexcept = default;
 
-ActionBase::~ActionBase() = default;
+    ActionBase::~ActionBase() = default;
 
-bool ActionBase::IsReady() const noexcept
-{
-    return _isReady;
-}
+    bool ActionBase::IsReady() const noexcept
+    {
+        return _isReady;
+    }
 
-void ActionBase::MarkCompleted() noexcept
-{
-    _isReady = true;
-}
+    void ActionBase::MarkCompleted() noexcept
+    {
+        _isReady = true;
+    }
 
-void MarkActionCompleted(ActionBase& action)
-{
-    action.MarkCompleted();
-}
+    void MarkActionCompleted(ActionBase& action)
+    {
+        action.MarkCompleted();
+    }
 
-WaitAction::WaitAction(TimePoint waitEnd) : _waitEnd(waitEnd)
-{
-}
+    WaitAction::WaitAction(TimePoint waitEnd) : _waitEnd(waitEnd)
+    {
+    }
 
-bool WaitAction::IsReady() const noexcept
-{
-    return _waitEnd <= GameTime::Now();
-}
+    bool WaitAction::IsReady() const noexcept
+    {
+        return _waitEnd <= GameTime::Now();
+    }
 }
