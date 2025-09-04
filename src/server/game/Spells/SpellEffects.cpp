@@ -6070,6 +6070,8 @@ void Spell::EffectSetChromieTime()
     Player* caster = m_caster->ToPlayer();
     if (!caster)
         return;
+    if (!effectInfo->MiscValue)
+        caster->SetChromieTime(ChromietimeCurrent, BackToPresent); // Selected the Present
 
     UIChromieTimeExpansionInfoEntry const* expansion = sUIChromieTimeExpansionInfoStore.LookupEntry(effectInfo->MiscValue);
 

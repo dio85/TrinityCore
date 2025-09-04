@@ -454,6 +454,8 @@ void WorldSession::HandleChromieTimeSelectExpansion(WorldPackets::NPC::ChromieTi
 
     switch (expansion.Expansion)
     {
+    case 0:
+        break;
     case 5:
         questId = 60891;
         conversationId = 14405;

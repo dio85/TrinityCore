@@ -107,6 +107,7 @@ enum Expansions
 
 enum ChromieTimeExpansionMask : int32
 {
+    BackToPresent           = 0,
     PortalToOutland         = 2,
     FallOfTheLiechKing      = 4,
     TheCataclysm            = 9,
