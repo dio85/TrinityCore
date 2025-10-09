@@ -4767,7 +4767,7 @@ void Spell::SendSpellStart()
     if (schoolImmunityMask || mechanicImmunityMask)
         castFlags |= CAST_FLAG_IMMUNITY;
 
-    if ((IsTriggered() && !m_spellInfo->IsAutoRepeatRangedSpell()) || m_triggeredByAuraSpell)
+    if ((!m_fromClient && (_triggeredCastFlags & TRIGGERED_IS_TRIGGERED_MASK) != 0 && !m_spellInfo->IsAutoRepeatRangedSpell()) || m_triggeredByAuraSpell)
         castFlags |= CAST_FLAG_PENDING;
 
     if (m_spellInfo->HasAttribute(SPELL_ATTR0_USES_RANGED_SLOT) || m_spellInfo->HasAttribute(SPELL_ATTR10_USES_RANGED_SLOT_COSMETIC_ONLY) || m_spellInfo->HasAttribute(SPELL_ATTR0_CU_NEEDS_AMMO_DATA))
@@ -4866,7 +4866,7 @@ void Spell::SendSpellGo()
     uint32 castFlags = CAST_FLAG_UNKNOWN_9;
 
     // triggered spells with spell visual != 0
-    if ((IsTriggered() && !m_spellInfo->IsAutoRepeatRangedSpell()) || m_triggeredByAuraSpell)
+    if ((!m_fromClient && (_triggeredCastFlags & TRIGGERED_IS_TRIGGERED_MASK) != 0 && !m_spellInfo->IsAutoRepeatRangedSpell()) || m_triggeredByAuraSpell)
         castFlags |= CAST_FLAG_PENDING;
 
     if (m_spellInfo->HasAttribute(SPELL_ATTR0_USES_RANGED_SLOT) || m_spellInfo->HasAttribute(SPELL_ATTR10_USES_RANGED_SLOT_COSMETIC_ONLY) || m_spellInfo->HasAttribute(SPELL_ATTR0_CU_NEEDS_AMMO_DATA))
@@ -6039,17 +6039,25 @@ SpellCastResult Spell::CheckCast(bool strict, int32* param1 /*= nullptr*/, int32
         if (castResult != SPELL_CAST_OK)
             return castResult;
 
-        // If it's not a melee spell, check if vision is obscured by SPELL_AURA_INTERFERE_TARGETTING
+        // If it's not a melee spell, check if vision is obscured by SPELL_AURA_INTERFERE_ENEMY_TARGETING
         if (m_spellInfo->DmgClass != SPELL_DAMAGE_CLASS_MELEE)
         {
             if (Unit const* unitCaster = m_caster->ToUnit())
             {
-                for (AuraEffect const* auraEff : unitCaster->GetAuraEffectsByType(SPELL_AURA_INTERFERE_TARGETTING))
+                for (AuraEffect const* auraEff : unitCaster->GetAuraEffectsByType(SPELL_AURA_INTERFERE_ENEMY_TARGETING))
                     if (!unitCaster->IsFriendlyTo(auraEff->GetCaster()) && !target->HasAura(auraEff->GetId(), auraEff->GetCasterGUID()))
                         return SPELL_FAILED_VISION_OBSCURED;
 
-                for (AuraEffect const* auraEff : target->GetAuraEffectsByType(SPELL_AURA_INTERFERE_TARGETTING))
-                    if (!unitCaster->IsFriendlyTo(auraEff->GetCaster()) && (!target->HasAura(auraEff->GetId(), auraEff->GetCasterGUID()) || !unitCaster->HasAura(auraEff->GetId(), auraEff->GetCasterGUID())))
+                for (AuraEffect const* auraEff : target->GetAuraEffectsByType(SPELL_AURA_INTERFERE_ENEMY_TARGETING))
+                    if (!unitCaster->IsFriendlyTo(auraEff->GetCaster()) && !unitCaster->HasAura(auraEff->GetId(), auraEff->GetCasterGUID()))
+                        return SPELL_FAILED_VISION_OBSCURED;
+
+                for (AuraEffect const* auraEff : unitCaster->GetAuraEffectsByType(SPELL_AURA_INTERFERE_ALL_TARGETING))
+                    if (!target->HasAura(auraEff->GetId(), auraEff->GetCasterGUID()))
+                        return SPELL_FAILED_VISION_OBSCURED;
+
+                for (AuraEffect const* auraEff : target->GetAuraEffectsByType(SPELL_AURA_INTERFERE_ALL_TARGETING))
+                    if (!unitCaster->HasAura(auraEff->GetId(), auraEff->GetCasterGUID()))
                         return SPELL_FAILED_VISION_OBSCURED;
             }
         }
@@ -9165,6 +9173,14 @@ bool Spell::CheckScriptEffectImplicitTargets(uint32 effIndex, uint32 effIndexToC
             return false;
     }
     return true;
+}
+
+SpellScript* Spell::GetScriptByType(std::type_info const& type) const
+{
+    auto itr = std::ranges::find(m_loadedScripts, type, [](SpellScript* script) -> std::type_info const& { return typeid(*script); });
+    if (itr != m_loadedScripts.end())
+        return *itr;
+    return nullptr;
 }
 
 bool Spell::CanExecuteTriggersOnHit(Unit* unit, SpellInfo const* triggeredByAura /*= nullptr*/) const
