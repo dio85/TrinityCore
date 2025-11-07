@@ -93,6 +93,39 @@ public:
                         handler->GetSession()->GetPlayer()->GetName(), handler->GetSession()->GetPlayer()->GetGUID().ToString(),
                         accountName, createGameAccount != false ? " with game account " : "", createGameAccount != false ? gameAccountName.c_str() : "");
                 }
+
+                // ================================================================
+                // ** AUTOMATIc WARDBAND GROUP CREATION **
+                // ================================================================
+
+                uint64 nextGroupId = 1;
+                LoginDatabasePreparedStatement* maxIdStmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_ACCOUNT_WARBAND_GROUP_MAX_ID);
+                if (PreparedQueryResult maxIdResult = LoginDatabase.Query(maxIdStmt))
+                {
+                    Field* fields = maxIdResult->Fetch();
+                    nextGroupId = fields[0].GetUInt64() + 1;
+                }
+
+                uint32 newAccountId = Battlenet::AccountMgr::GetId(accountName);
+
+                if (newAccountId)
+                {
+                    LoginDatabasePreparedStatement* insertStmt = LoginDatabase.GetPreparedStatement(LOGIN_INS_ACCOUNT_WARBAND_GROUP);
+                    insertStmt->setUInt64(0, nextGroupId);                        // id
+                    insertStmt->setUInt32(1, newAccountId);                       // accountId
+                    insertStmt->setUInt8(2, 0);                                   // orderIndex
+                    insertStmt->setString(3, std::string_view("Favorites"));      // name
+                    insertStmt->setUInt32(4, 4);                                  // warbandSceneId
+                    insertStmt->setUInt32(5, 1);                                  // flags
+                    LoginDatabase.Execute(insertStmt);
+
+                    TC_LOG_INFO("server.authserver", "Default warband group 'Favorites' created for Battle.net account {}", newAccountId);
+                }
+                else
+                {
+                    TC_LOG_ERROR("server.authserver", "Failed to get account ID for new Battle.net account '{}'", accountName);
+                }
+
                 break;
             }
             case AccountOpResult::AOR_NAME_TOO_LONG:

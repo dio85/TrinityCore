@@ -31221,7 +31221,7 @@ uint8 Player::GetChromieTimeExpansionLevel(uint8 chromieTime)
         return EXPANSION_DRAGONFLIGHT;
     case ChromieTime::ChromietimeCurrent:
     default:
-        return EXPANSION_THE_WAR_WITHIN;
+        return EXPANSION_DRAGONFLIGHT;
         break;
     }
 }

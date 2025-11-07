@@ -872,4 +872,43 @@ WorldPacket const* PlayerSavePersonalEmblem::Write()
 
     return &_worldPacket;
 }
+void SetupWarbandGroups::Read()
+{
+    WarbandGroups.clear();
+
+    uint32 groupCount = _worldPacket.ReadBits(5);
+    _worldPacket.FlushBits();
+    _worldPacket.ResetBitPos();
+
+    WarbandGroups.resize(groupCount);
+    for (uint32 i = 0; i < groupCount; ++i)
+    {
+        _worldPacket >> WarbandGroups[i].GroupID;
+        _worldPacket >> WarbandGroups[i].OrderIndex;
+        _worldPacket >> WarbandGroups[i].WarbandSceneID;
+        _worldPacket >> WarbandGroups[i].Flags;
+
+        uint32 memberCount;
+        _worldPacket >> memberCount;
+
+        WarbandGroups[i].Members.resize(memberCount);
+        for (uint32 j = 0; j < memberCount; ++j)
+        {
+            _worldPacket >> WarbandGroups[i].Members[j].WarbandScenePlacementID;
+            _worldPacket >> WarbandGroups[i].Members[j].Type;
+
+            if (WarbandGroups[i].Members[j].Type == 0)
+                _worldPacket >> WarbandGroups[i].Members[j].Guid;
+        }
+
+        uint8 nameLenDiv2;
+        _worldPacket >> nameLenDiv2;
+
+        uint32 nameLenMod2 = _worldPacket.ReadBits(1);
+        _worldPacket.FlushBits();
+
+        uint32 nameLen = (nameLenDiv2 * 2) + nameLenMod2;
+        WarbandGroups[i].Name = _worldPacket.ReadString(nameLen);
+    }
+}
 }

@@ -894,6 +894,16 @@ namespace WorldPackets
 
             int32 Error;
         };
+
+        class SetupWarbandGroups final : public ClientPacket
+        {
+        public:
+            explicit SetupWarbandGroups(WorldPacket&& packet) : ClientPacket(CMSG_SETUP_WARBAND_GROUPS, std::move(packet)) { }
+
+            void Read() override;
+
+            std::vector<WarbandGroup> WarbandGroups;
+        };
     }
 }
 
