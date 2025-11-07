@@ -753,6 +753,7 @@ enum RBACPermissions
     // IF YOU ADD NEW PERMISSIONS, ADD THEM IN 3.3.5 BRANCH AS WELL!
     //
     // custom permissions 1000+
+    RBAC_PERM_COMMAND_NPC_RELOAD                            = 1001,
     RBAC_PERM_MAX
 };
 

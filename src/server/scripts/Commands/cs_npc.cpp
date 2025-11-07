@@ -49,6 +49,7 @@ EndScriptData */
 #include "Transport.h"
 #include "World.h"
 #include "WorldSession.h"
+#include <SmartScriptMgr.h>
 
 using namespace Trinity::ChatCommands;
 
@@ -95,6 +96,7 @@ public:
             { "add", npcAddCommandTable },
             { "set", npcSetCommandTable },
             { "info",           HandleNpcInfoCommand,              rbac::RBAC_PERM_COMMAND_NPC_INFO,           Console::No },
+            { "reload",         HandleNpcReloadCommand,            rbac::RBAC_PERM_COMMAND_NPC_RELOAD,         Console::No },
             { "near",           HandleNpcNearCommand,              rbac::RBAC_PERM_COMMAND_NPC_NEAR,           Console::No },
             { "move",           HandleNpcMoveCommand,              rbac::RBAC_PERM_COMMAND_NPC_MOVE,           Console::No },
             { "playemote",      HandleNpcPlayEmoteCommand,         rbac::RBAC_PERM_COMMAND_NPC_PLAYEMOTE,      Console::No },
@@ -1458,6 +1460,53 @@ public:
 
         handler->PSendSysMessage(LANG_ITEM_ADDED_TO_SLOT, tmpItem->ItemID, tmpItem->Name1, SlotID);
         */
+        return true;
+    }
+
+    static bool HandleNpcReloadCommand(ChatHandler* handler)
+    {
+        Creature* target = handler->getSelectedCreature();
+
+        if (!target)
+        {
+            handler->SendSysMessage("You must select an NPC first.");
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
+        uint32 entry = target->GetEntry();
+        handler->PSendSysMessage("Reloading NPC entry %u (%s)...", entry, target->GetName().c_str());
+
+        // Save spawn position before despawn
+        Position pos = target->GetPosition();
+        Map* map = target->GetMap();
+
+        // Reload DB data
+        sObjectMgr->LoadCreatureTemplates();
+        sObjectMgr->LoadGossipMenu();
+        sObjectMgr->LoadGossipMenuItems();
+        sObjectMgr->LoadNPCSpellClickSpells();
+        sObjectMgr->LoadNPCText();
+        sObjectMgr->LoadVendors();
+        sObjectMgr->LoadCreatureTemplateDifficulty();
+        sSmartScriptMgr->LoadSmartAIFromDB();
+
+        // Despawn current
+        target->DespawnOrUnsummon(1s);
+
+        // Respawn same NPC
+        if (Creature* newCreature = map->SummonCreature(entry, pos))
+        {
+            handler->PSendSysMessage("Creature %u respawned and reloaded successfully.", entry);
+            newCreature->SaveToDB();
+        }
+        else
+        {
+            handler->PSendSysMessage("Failed to respawn creature %u.", entry);
+            handler->SetSentErrorMessage(true);
+            return false;
+        }
+
         return true;
     }
 };
