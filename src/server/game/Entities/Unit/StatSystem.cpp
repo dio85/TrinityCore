@@ -223,7 +223,6 @@ bool Player::UpdateAllStats()
     UpdatePowerRegen(POWER_MANA);
     UpdatePowerRegen(POWER_RAGE);
     UpdatePowerRegen(POWER_ENERGY);
-    UpdatePowerRegen(POWER_RUNIC_POWER);
     UpdateExpertise(BASE_ATTACK);
     UpdateExpertise(OFF_ATTACK);
     RecalculateRating(CR_ARMOR_PENETRATION);
@@ -883,14 +882,6 @@ void Player::UpdatePowerRegen(Powers power)
             result_regen_interrupted    += base_regen;
             break;
         }
-        case POWER_RUNES:
-        {
-            float base_regen            = float(1 * IN_MILLISECONDS) / float(GetRuneBaseCooldown());
-
-            result_regen                = base_regen;
-            result_regen_interrupted    = base_regen;
-            break;
-        }
         default:
             break;
     }
@@ -1018,14 +1009,6 @@ uint32 Creature::GetPowerIndex(Powers power) const
     {
         case POWER_COMBO_POINTS:
             return 2;
-        case POWER_ALTERNATE_POWER:
-            return 1;
-        case POWER_ALTERNATE_QUEST:
-            return 3;
-        case POWER_ALTERNATE_ENCOUNTER:
-            return 4;
-        case POWER_ALTERNATE_MOUNT:
-            return 5;
         default:
             break;
     }
@@ -1039,13 +1022,9 @@ ClassPowerTypes Creature::GetPowerTypes() const
         .PowerType =
         {
             GetPowerType(),
-            POWER_ALTERNATE_POWER,
             POWER_COMBO_POINTS,
-            POWER_ALTERNATE_QUEST,
-            POWER_ALTERNATE_ENCOUNTER,
-            POWER_ALTERNATE_MOUNT
         },
-        .PowerTypeCount = 6
+        .PowerTypeCount = 1
     };
 }
 

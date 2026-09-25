@@ -205,8 +205,6 @@ public:
         if (CheckModifyResources(handler, args, target, rune, runemax, runeMultiplier))
         {
             NotifyModification(handler, target, LANG_YOU_CHANGE_RUNIC_POWER, LANG_YOURS_RUNIC_POWER_CHANGED, rune / runeMultiplier, runemax / runeMultiplier);
-            target->SetMaxPower(POWER_RUNIC_POWER, runemax);
-            target->SetPower(POWER_RUNIC_POWER, rune);
             return true;
         }
         return false;

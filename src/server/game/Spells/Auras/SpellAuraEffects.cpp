@@ -734,6 +734,11 @@ NonDefaultConstructible<pAuraEffectHandler> AuraEffectHandler[TOTAL_AURAS]=
     &AuraEffect::HandleNULL,                                      //662
     &AuraEffect::HandleNULL,                                      //663
     &AuraEffect::HandleNULL,                                      //664
+    &AuraEffect::HandleNULL,                                      //665
+    &AuraEffect::HandleNULL,                                      //666
+    &AuraEffect::HandleNULL,                                      //667
+    &AuraEffect::HandleNULL,                                      //668
+    &AuraEffect::HandleNULL,                                      //669
 };
 
 AuraEffect::AuraEffect(Aura* base, SpellEffectInfo const& spellEfffectInfo, SpellEffectValue const* baseAmount, Unit* caster) :
@@ -6220,11 +6225,6 @@ void AuraEffect::HandleEnableAltPower(AuraApplication const* aurApp, uint8 mode,
     UnitPowerBarEntry const* powerEntry = sUnitPowerBarStore.LookupEntry(altPowerId);
     if (!powerEntry)
         return;
-
-    if (apply)
-        aurApp->GetTarget()->SetMaxPower(POWER_ALTERNATE_POWER, powerEntry->MaxPower);
-    else
-        aurApp->GetTarget()->SetMaxPower(POWER_ALTERNATE_POWER, 0);
 }
 
 void AuraEffect::HandleModGravity(AuraApplication const* aurApp, uint8 mode, bool /*apply*/) const

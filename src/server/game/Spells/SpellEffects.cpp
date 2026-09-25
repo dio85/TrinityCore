@@ -449,6 +449,7 @@ NonDefaultConstructible<SpellEffectHandlerFn> SpellEffectHandlers[TOTAL_SPELL_EF
     &Spell::EffectNULL,                                     //357 SPELL_EFFECT_357
     &Spell::EffectNULL,                                     //358 SPELL_EFFECT_358
     &Spell::EffectNULL,                                     //359 SPELL_EFFECT_359
+    &Spell::EffectNULL,                                     //360 SPELL_EFFECT_360
 };
 
 void Spell::EffectNULL()

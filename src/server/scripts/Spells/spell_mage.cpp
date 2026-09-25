@@ -213,11 +213,8 @@ class spell_mage_arcane_barrage : public SpellScript
     void ConsumeArcaneCharges()
     {
         Unit* caster = GetCaster();
-
-        // Consume all arcane charges
-        if (int32 arcaneCharges = -caster->ModifyPower(POWER_ARCANE_CHARGES, -caster->GetMaxPower(POWER_ARCANE_CHARGES), false))
             if (AuraEffect const* auraEffect = caster->GetAuraEffect(SPELL_MAGE_ARCANE_BARRAGE_R3, EFFECT_0, caster->GetGUID()))
-                caster->CastSpell(caster, SPELL_MAGE_ARCANE_BARRAGE_ENERGIZE, { SPELLVALUE_BASE_POINT0, arcaneCharges * auraEffect->GetAmount() / 100 });
+                caster->CastSpell(caster, SPELL_MAGE_ARCANE_BARRAGE_ENERGIZE, { SPELLVALUE_BASE_POINT0, auraEffect->GetAmount() / 100 });
     }
 
     void HandleEffectHitTarget(SpellEffIndex /*effIndex*/)

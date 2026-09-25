@@ -560,9 +560,6 @@ class spell_pal_divine_purpose : public AuraScript
         if (!procSpell)
             return false;
 
-        if (!procSpell->HasPowerTypeCost(POWER_HOLY_POWER))
-            return false;
-
         return roll_chance(aurEff->GetAmount());
     }
 
@@ -877,8 +874,6 @@ class spell_pal_fist_of_justice : public AuraScript
 
     bool CheckEffectProc(AuraEffect const* /*aurEff*/, ProcEventInfo& eventInfo)
     {
-        if (Spell const* procSpell = eventInfo.GetProcSpell())
-            return procSpell->HasPowerTypeCost(POWER_HOLY_POWER);
 
         return false;
     }
@@ -1569,11 +1564,6 @@ class spell_pal_righteous_protector : public AuraScript
 
     bool CheckEffectProc(AuraEffect const* /*aurEff*/, ProcEventInfo& eventInfo)
     {
-        if (SpellInfo const* procSpell = eventInfo.GetSpellInfo())
-            _baseHolyPowerCost = procSpell->CalcPowerCost(POWER_HOLY_POWER, false, eventInfo.GetActor(), eventInfo.GetSchoolMask());
-        else
-            _baseHolyPowerCost.reset();
-
         return _baseHolyPowerCost.has_value();
     }
 
@@ -1618,9 +1608,6 @@ class spell_pal_selfless_healer : public AuraScript
 {
     bool CheckEffectProc(AuraEffect const* /*aurEff*/, ProcEventInfo& eventInfo)
     {
-        if (Spell const* procSpell = eventInfo.GetProcSpell())
-            return procSpell->HasPowerTypeCost(POWER_HOLY_POWER);
-
         return false;
     }
 

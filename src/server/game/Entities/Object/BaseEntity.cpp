@@ -600,27 +600,14 @@ void BaseEntity::BuildMovementUpdate(ByteBuffer& data, CreateObjectBits flags, P
         Player const* player = static_cast<Player const*>(this);
 
         bool HasSceneInstanceIDs = !player->GetSceneMgr().GetSceneTemplateByInstanceMap().empty();
-        bool HasRuneState = player->GetPowerIndex(POWER_RUNES) < MAX_POWERS_PER_CLASS;
 
         data.WriteBit(HasSceneInstanceIDs);
-        data.WriteBit(HasRuneState);
         data.FlushBits();
         if (HasSceneInstanceIDs)
         {
             data << uint32(player->GetSceneMgr().GetSceneTemplateByInstanceMap().size());
             for (auto const& [sceneInstanceId, _] : player->GetSceneMgr().GetSceneTemplateByInstanceMap())
                 data << uint32(sceneInstanceId);
-        }
-        if (HasRuneState)
-        {
-            float baseCd = float(player->GetRuneBaseCooldown());
-            uint32 maxRunes = uint32(player->GetMaxPower(POWER_RUNES));
-
-            data << uint8((1 << maxRunes) - 1);
-            data << uint8(player->GetRunesState());
-            data << uint32(maxRunes);
-            for (uint32 i = 0; i < maxRunes; ++i)
-                data << uint8((baseCd - float(player->GetRuneCooldown(i))) / baseCd * 255);
         }
     }
 

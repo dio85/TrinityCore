@@ -136,6 +136,7 @@ struct AreaTableEntry
     uint16 UwAmbience;
     uint16 ZoneMusic;
     uint16 UwZoneMusic;
+    int8 ExplorationLevel;
     uint16 IntroSound;
     uint32 UwIntroSound;
     uint8 FactionGroupMask;
@@ -618,6 +619,7 @@ struct Cfg_RegionsEntry
 {
     uint32 ID;
     char const* Tag;
+    LocalizedString Name;
     uint16 RegionID;
     uint32 Raidorigin;                                              // Date of first raid reset, all other resets are calculated as this date plus interval
     uint8 RegionGroupMask;
@@ -659,6 +661,7 @@ struct CharacterLoadoutEntry
     int8 ChrClassID;
     int32 Purpose;
     uint8 ItemContext;
+    int32 Field_1_60_1_69876_003;
     Trinity::RaceMask<int32, 2> RaceMask;
 
     bool IsForNewCharacter() const { return Purpose == 9; }
@@ -1456,7 +1459,8 @@ struct CurrencyTypesEntry
     int32 MaxQtyWorldStateID;
     uint32 RechargingAmountPerCycle;
     uint32 RechargingCycleDurationMS;
-    float AccountTransferPercentage;
+    float WarbondTransferPercentage;
+    int32 MaxQtyCurveID;
     uint8 OrderIndex;
     float RecraftReagentCountPercentage;
     uint8 OrderSource;
@@ -1683,16 +1687,17 @@ struct FactionEntry
     uint16 ParagonFactionID;
     int32 RenownFactionID;
     int32 RenownCurrencyID;
+    int32 RenownThresholdCurveID;
     std::array<int16, 4> ReputationClassMask;
     std::array<uint16, 4> ReputationFlags;
     std::array<int32, 4> ReputationBase;
     std::array<int32, 4> ReputationMax;
-    std::array<float, 2> ParentFactionMod;            // Faction outputs rep * ParentFactionModOut as spillover reputation
-    std::array<uint8, 2> ParentFactionCap;            // The highest rank the faction will profit from incoming spillover
-    Trinity::RaceMask<int32, 2> ReputationRaceMask1;
-    Trinity::RaceMask<int32, 2> ReputationRaceMask2;
-    Trinity::RaceMask<int32, 2> ReputationRaceMask3;
-    Trinity::RaceMask<int32, 2> ReputationRaceMask4;
+    std::array<float, 2> ParentFactionMod;
+    std::array<uint8, 2> ParentFactionCap;
+    Trinity::RaceMask<int32, 2> ReputationRaceMasks0;
+    Trinity::RaceMask<int32, 2> ReputationRaceMasks1;
+    Trinity::RaceMask<int32, 2> ReputationRaceMasks2;
+    Trinity::RaceMask<int32, 2> ReputationRaceMasks3;
 
     // helpers
     bool CanHaveReputation() const
@@ -2079,6 +2084,7 @@ struct GlobalCurveEntry
     uint32 ID;
     int32 CurveID;
     int32 Type;
+    int32 SubType;
 };
 
 struct GlyphBindableSpellEntry
@@ -2225,12 +2231,13 @@ struct ItemEntry
     uint8 Material;
     int8 InventoryType;
     uint8 SheatheType;
-    int8 SoundOverrideSubclassID;
+    int32 ItemPetFoodID;
+    int8 SoundOverridesubclassID;
     int32 IconFileDataID;
     uint32 ItemGroupSoundsID;
     int32 ContentTuningID;
     int32 ModifiedCraftingReagentItemID;
-    uint8 Unknown1200;
+    uint8 AmmunitionType;
     int32 CraftingQualityID;
     int32 ItemSquishEraID;
     float RecraftReagentCountPercentage;
@@ -2620,7 +2627,7 @@ struct ItemSparseEntry
     float PriceVariance;
     float PriceRandomValue;
     std::array<int32, MAX_ITEM_PROTO_FLAGS> Flags;
-    int32 FactionRelated;
+    int32 OppositeFactionItemID;
     int32 ModifiedCraftingReagentItemID;
     int32 ContentTuningID;
     int32 PlayerLevelToItemLevelCurveID;
@@ -2631,7 +2638,7 @@ struct ItemSparseEntry
     uint16 RequiredTransmogHoliday;
     uint16 RequiredHoliday;
     uint16 GemProperties;
-    uint16 SocketMatchEnchantmentId;
+    uint16 SocketMatchenchantmentID;
     uint16 TotemCategoryID;
     uint16 InstanceBound;
     std::array<uint16, MAX_ITEM_PROTO_ZONES> ZoneBound;
@@ -2652,13 +2659,14 @@ struct ItemSparseEntry
     uint8 Material;
     uint8 PageMaterialID;
     uint8 Bonding;
-    uint8 DamageDamageType;
+    uint8 DamageType;
     uint8 ContainerSlots;
     uint8 RequiredPVPMedal;
     int8 RequiredPVPRank;
     int8 RequiredLevel;
     int8 InventoryType;
     int8 OverallQualityID;
+    uint8 AmmunitionType;
 };
 
 struct ItemSpecEntry
@@ -2920,6 +2928,7 @@ struct MapEntry
     int16 WindSettingsID;
     int32 ZmpFileDataID;
     int32 WdtFileDataID;
+    int32 OceanLiquidTypeID;
     int32 NavigationMaxDistance;
     int32 PreloadFileDataID;
     std::array<int32, 3> Flags;
@@ -3155,6 +3164,7 @@ struct NameGenEntry
     char const* Name;
     int8 RaceID;
     int8 Sex;
+    uint8 NameType;
 };
 
 struct NamesProfanityEntry
@@ -3359,6 +3369,7 @@ struct PlayerDataElementAccountEntry
     int32 StorageIndex;
     int32 Type;
     int32 Unknown1125;
+    int32 Unknown1215;
 
     PlayerDataElementType GetType() const { return static_cast<PlayerDataElementType>(Type); }
 };
@@ -3369,6 +3380,7 @@ struct PlayerDataElementCharacterEntry
     int32 StorageIndex;
     int32 Type;
     int32 Unknown1125;
+    int32 Unknown1215;
 
     PlayerDataElementType GetType() const { return static_cast<PlayerDataElementType>(Type); }
 };
@@ -3699,7 +3711,7 @@ struct SkillLineAbilityEntry
     LocalizedString AbilityVerb;
     LocalizedString AbilityAllVerb;
     uint32 ID;
-    uint16 SkillLine;
+    int16 SkillLine;
     int32 Spell;
     int16 MinSkillLineRank;
     int32 ClassMask;
@@ -3712,7 +3724,8 @@ struct SkillLineAbilityEntry
     int16 UniqueBit;
     int16 TradeSkillCategoryID;
     int16 SkillupSkillLineID;
-    Trinity::RaceMask<int32, 2> RaceMask;
+    std::array<int32, 2> Field_5_5_4_67090_014;
+    Trinity::RaceMask<int32, 2> RaceMasks;
 
     SkillLineAbilityAcquireMethod GetAcquireMethod() const { return static_cast<SkillLineAbilityAcquireMethod>(AcquireMethod); }
     EnumFlag<SkillLineAbilityFlags> GetFlags() const { return static_cast<SkillLineAbilityFlags>(Flags); }
@@ -3977,26 +3990,27 @@ struct SpellItemEnchantmentEntry
     LocalizedString Name;
     LocalizedString HordeName;
     int32 Duration;
+    int32 Charges;
+    std::array<int32, MAX_ITEM_ENCHANTMENT_EFFECTS> Effect;
+    std::array<int32, MAX_ITEM_ENCHANTMENT_EFFECTS> EffectPointsMin;
     std::array<uint32, MAX_ITEM_ENCHANTMENT_EFFECTS> EffectArg;
     int32 Flags;
     std::array<float, MAX_ITEM_ENCHANTMENT_EFFECTS> EffectScalingPoints;
-    uint32 IconFileDataID;
-    int32 MinItemLevel;
-    int32 MaxItemLevel;
-    uint32 TransmogUseConditionID;
-    uint32 TransmogCost;
-    std::array<int16, MAX_ITEM_ENCHANTMENT_EFFECTS> EffectPointsMin;
+    int32 ScalingClass;
+    int32 ScalingClassRestricted;
+    int32 Field_12_1_5_69594_011;
+    int32 RequiredSkillID;
+    int32 RequiredSkillRank;
+    int32 MinLevel;
+    int32 MaxLevel;
+    int32 IconFileDataID;
+    int32 ItemLevelMin;
+    int32 ItemLevelMax;
+    int32 TransmogUseConditionID;
+    int32 TransmogCost;
+    int32 Field_12_1_5_69594_021;
     uint16 ItemVisual;
-    uint16 RequiredSkillID;
-    uint16 RequiredSkillRank;
     uint16 ItemLevel;
-    uint8 Charges;
-    std::array<uint8, MAX_ITEM_ENCHANTMENT_EFFECTS> Effect;
-    int8 ScalingClass;
-    int8 ScalingClassRestricted;
-    uint8 ConditionID;
-    uint8 MinLevel;
-    uint8 MaxLevel;
 
     EnumFlag<SpellItemEnchantmentFlags> GetFlags() const { return static_cast<SpellItemEnchantmentFlags>(Flags); }
 };
@@ -4115,7 +4129,8 @@ struct SpellProcsPerMinuteModEntry
     int32 Type;
     int32 Param;
     float Coeff;
-    uint32 SpellProcsPerMinuteID;
+    int32 Field_12_1_5_69594_003;
+    int32 SpellProcsPerMinuteID;
 };
 
 struct SpellRadiusEntry
@@ -4294,8 +4309,12 @@ struct SpellVisualMissileEntry
     uint32 AnimKitID;
     int32 ClutterLevel;
     int32 DecayTimeAfterImpact;
-    uint16 Unused1100;
-    uint32 SpellVisualMissileSetID;
+    uint16 Field_12_1_5_69594_017;
+    int32 Field_12_1_5_69594_018;
+    int32 Field_12_1_5_69594_019;
+    int32 Field_12_1_5_69594_020;
+    int32 Field_12_1_5_69594_021;
+    int32 SpellVisualMissileSetID;
 };
 
 struct SpellXSpellVisualEntry
@@ -4486,6 +4505,7 @@ struct TraitCurrencyEntry
     int32 Icon;
     int32 PlayerDataElementAccountID;
     int32 PlayerDataElementCharacterID;
+    int32 SourcedMax;
 
     TraitCurrencyType GetType() const { return static_cast<TraitCurrencyType>(Type); }
 };
@@ -4494,12 +4514,13 @@ struct TraitCurrencySourceEntry
 {
     LocalizedString Requirement;
     uint32 ID;
-    uint32 TraitCurrencyID;
+    int32 TraitCurrencyID;
     int32 Amount;
     int32 QuestID;
     int32 AchievementID;
     int32 PlayerLevel;
     int32 TraitNodeEntryID;
+    int32 SuperDistrictSetID;
     int32 OrderIndex;
 };
 

@@ -1261,7 +1261,7 @@ bool World::SetInitialWorldSettings()
     sObjectMgr->SetHighestGuids();
 
     ///- Check the existence of the map files for all races' startup areas.
-    if (!TerrainMgr::ExistMapAndVMap(0, -6240.32f, 331.033f)
+    /*if (!TerrainMgr::ExistMapAndVMap(0, -6240.32f, 331.033f)
         || !TerrainMgr::ExistMapAndVMap(0, -8949.95f, -132.493f)
         || !TerrainMgr::ExistMapAndVMap(1, -618.518f, -4251.67f)
         || !TerrainMgr::ExistMapAndVMap(0, 1676.35f, 1677.45f)
@@ -1273,7 +1273,7 @@ bool World::SetInitialWorldSettings()
     {
         TC_LOG_FATAL("server.loading", "Unable to load map and vmap data for starting zones - server shutting down!");
         return false;
-    }
+    }*/
 
     ///- Initialize pool manager
     sPoolMgr->Initialize();

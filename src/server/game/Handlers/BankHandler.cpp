@@ -166,24 +166,6 @@ void WorldSession::HandleBuyBankTab(WorldPackets::Bank::BuyBankTab const& buyBan
     uint8 slot = 0;
     uint8 inventorySlot = 0;
 
-    switch (buyBankTab.BankType)
-    {
-        case BankType::Character:
-            itemId = ITEM_CHARACTER_BANK_TAB_BAG;
-            slot = _player->GetCharacterBankTabCount();
-            inventorySlot = BANK_SLOT_BAG_START + slot;
-            break;
-        case BankType::Account:
-            itemId = ITEM_ACCOUNT_BANK_TAB_BAG;
-            slot = _player->GetAccountBankTabCount();
-            inventorySlot = ACCOUNT_BANK_SLOT_BAG_START + slot;
-            break;
-        default:
-            TC_LOG_DEBUG("network", "WorldSession::HandleBuyBankTab {} - Bank type {} is not supported.",
-                _player->GetGUID(), buyBankTab.BankType);
-            return;
-    }
-
     auto bankTab = std::ranges::find(sBankTabStore, std::pair(buyBankTab.BankType, int8(slot)),
         [](BankTabEntry const* bankTab) { return std::pair(BankType(bankTab->BankType), bankTab->OrderIndex); });
 

@@ -1271,10 +1271,6 @@ class spell_item_heartpierce : public AuraScript
             case POWER_RAGE:
                 spellId = Rage;
                 break;
-            // Death Knights can't use daggers, but oh well
-            case POWER_RUNIC_POWER:
-                spellId = RunicPower;
-                break;
             default:
                 return;
         }

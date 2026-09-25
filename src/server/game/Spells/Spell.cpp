@@ -4732,32 +4732,6 @@ void Spell::SendSpellStart()
         }
     }
 
-    if (castFlags & CAST_FLAG_RUNE_LIST) // rune cooldowns list
-    {
-        castData.RemainingRunes.emplace();
-
-        //TODO: There is a crash caused by a spell with CAST_FLAG_RUNE_LIST casted by a creature
-        //The creature is the mover of a player, so HandleCastSpellOpcode uses it as the caster
-        if (Player* player = m_caster->ToPlayer())
-        {
-            castData.RemainingRunes->Start = m_runesState; // runes state before
-            castData.RemainingRunes->Count = player->GetRunesState(); // runes state after
-            for (uint8 i = 0; i < player->GetMaxPower(POWER_RUNES); ++i)
-            {
-                // float casts ensure the division is performed on floats as we need float result
-                float baseCd = float(player->GetRuneBaseCooldown());
-                castData.RemainingRunes->Cooldowns.push_back((baseCd - float(player->GetRuneCooldown(i))) / baseCd * 255); // rune cooldown passed
-            }
-        }
-        else
-        {
-            castData.RemainingRunes->Start = 0;
-            castData.RemainingRunes->Count = 0;
-            for (uint8 i = 0; i < player->GetMaxPower(POWER_RUNES); ++i)
-                castData.RemainingRunes->Cooldowns.push_back(0);
-        }
-    }
-
     if (castFlags & CAST_FLAG_PROJECTILE)
         castData.AmmoDisplayID = GetSpellCastDataAmmo();
 
@@ -4795,12 +4769,6 @@ void Spell::SendSpellGo()
         && std::ranges::any_of(m_powerCost, [](SpellPowerCost const& cost) { return cost.Power != POWER_HEALTH; }))
         castFlags |= CAST_FLAG_POWER_LEFT_SELF;
 
-    if ((m_caster->GetTypeId() == TYPEID_PLAYER)
-        && (m_caster->ToPlayer()->GetClass() == CLASS_DEATH_KNIGHT)
-        && HasPowerTypeCost(POWER_RUNES)
-        && !(_triggeredCastFlags & TRIGGERED_IGNORE_POWER_COST))
-        castFlags |= CAST_FLAG_RUNE_LIST; // rune cooldowns list
-
     if (m_targets.HasTraj())
         castFlags |= CAST_FLAG_ADJUST_MISSILE;
 
@@ -4835,21 +4803,6 @@ void Spell::SendSpellGo()
             powerData.Type = cost.Power;
             powerData.Cost = ASSERT_NOTNULL(m_caster->ToUnit())->GetPower(cost.Power);
             castData.RemainingPower.push_back(powerData);
-        }
-    }
-
-    if (castFlags & CAST_FLAG_RUNE_LIST) // rune cooldowns list
-    {
-        castData.RemainingRunes.emplace();
-
-        Player* player = ASSERT_NOTNULL(m_caster->ToPlayer());
-        castData.RemainingRunes->Start = m_runesState; // runes state before
-        castData.RemainingRunes->Count = player->GetRunesState(); // runes state after
-        for (uint8 i = 0; i < player->GetMaxPower(POWER_RUNES); ++i)
-        {
-            // float casts ensure the division is performed on floats as we need float result
-            float baseCd = float(player->GetRuneBaseCooldown());
-            castData.RemainingRunes->Cooldowns.push_back((baseCd - float(player->GetRuneCooldown(i))) / baseCd * 255); // rune cooldown passed
         }
     }
 
@@ -5483,12 +5436,6 @@ void Spell::TakePower()
                 modOwner->ApplySpellMod(m_spellInfo, SpellModOp::PowerCostOnMiss, cost.Amount);
         }
 
-        if (cost.Power == POWER_RUNES)
-        {
-            TakeRunePower(hit);
-            continue;
-        }
-
         if (!cost.Amount)
             continue;
 
@@ -5522,12 +5469,6 @@ void Spell::RefundPower()
 
     for (SpellPowerCost& cost : m_powerCost)
     {
-        if (cost.Power == POWER_RUNES)
-        {
-            RefundRunePower();
-            continue;
-        }
-
         if (!cost.Amount)
             continue;
 
@@ -5544,7 +5485,7 @@ void Spell::RefundPower()
 
 SpellCastResult Spell::CheckRuneCost() const
 {
-    int32 runeCost = std::accumulate(m_powerCost.begin(), m_powerCost.end(), 0, [](int32 totalCost, SpellPowerCost const& cost)
+    /*int32 runeCost = std::accumulate(m_powerCost.begin(), m_powerCost.end(), 0, [](int32 totalCost, SpellPowerCost const& cost)
     {
         return totalCost + (cost.Power == POWER_RUNES ? cost.Amount : 0);
     });
@@ -5565,14 +5506,14 @@ SpellCastResult Spell::CheckRuneCost() const
             ++readyRunes;
 
     if (readyRunes < runeCost)
-        return SPELL_FAILED_NO_POWER;                       // not sure if result code is correct
+        return SPELL_FAILED_NO_POWER; */                      // not sure if result code is correct
 
     return SPELL_CAST_OK;
 }
 
 void Spell::TakeRunePower(bool didHit)
 {
-    if (m_caster->GetTypeId() != TYPEID_PLAYER || m_caster->ToPlayer()->GetClass() != CLASS_DEATH_KNIGHT)
+    /*if (m_caster->GetTypeId() != TYPEID_PLAYER || m_caster->ToPlayer()->GetClass() != CLASS_DEATH_KNIGHT)
         return;
 
     Player* player = m_caster->ToPlayer();
@@ -5593,12 +5534,12 @@ void Spell::TakeRunePower(bool didHit)
             player->SetRuneCooldown(i, player->GetRuneBaseCooldown());
             --runeCost;
         }
-    }
+    }*/
 }
 
 void Spell::RefundRunePower()
 {
-    if (m_caster->GetTypeId() != TYPEID_PLAYER || m_caster->ToPlayer()->GetClass() != CLASS_DEATH_KNIGHT)
+    /*if (m_caster->GetTypeId() != TYPEID_PLAYER || m_caster->ToPlayer()->GetClass() != CLASS_DEATH_KNIGHT)
         return;
 
     Player* player = m_caster->ToPlayer();
@@ -5606,7 +5547,7 @@ void Spell::RefundRunePower()
     // restore old rune state
     for (int32 i = 0; i < player->GetMaxPower(POWER_RUNES); ++i)
         if (m_runesState & (1 << i))
-            player->SetRuneCooldown(i, 0);
+            player->SetRuneCooldown(i, 0);*/
 }
 
 void Spell::TakeReagents()
@@ -7413,16 +7354,6 @@ SpellCastResult Spell::CheckPower() const
         {
             TC_LOG_ERROR("spells", "Spell::CheckPower: Unknown power type '{}'", cost.Power);
             return SPELL_FAILED_UNKNOWN;
-        }
-
-        //check rune cost only if a spell has PowerType == POWER_RUNES
-        if (cost.Power == POWER_RUNES)
-        {
-            SpellCastResult failReason = CheckRuneCost();
-            if (failReason != SPELL_CAST_OK)
-                return failReason;
-
-            continue;
         }
 
         // Check power amount

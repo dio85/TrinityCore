@@ -297,28 +297,8 @@ enum Powers : int8
     POWER_FOCUS                         = 2,  // TITLE Focus
     POWER_ENERGY                        = 3,  // TITLE Energy
     POWER_COMBO_POINTS                  = 4,  // TITLE Combo Points
-    POWER_RUNES                         = 5,  // TITLE Runes
-    POWER_RUNIC_POWER                   = 6,  // TITLE Runic Power
-    POWER_SOUL_SHARDS                   = 7,  // TITLE Soul Shards
-    POWER_LUNAR_POWER                   = 8,  // TITLE Lunar Power
-    POWER_HOLY_POWER                    = 9,  // TITLE Holy Power
-    POWER_ALTERNATE_POWER               = 10, // TITLE Alternate
-    POWER_MAELSTROM                     = 11, // TITLE Maelstrom
-    POWER_CHI                           = 12, // TITLE Chi
-    POWER_INSANITY                      = 13, // TITLE Insanity
-    POWER_BURNING_EMBERS                = 14, // TITLE Burning Embers (Obsolete)
-    POWER_DEMONIC_FURY                  = 15, // TITLE Demonic Fury (Obsolete)
-    POWER_ARCANE_CHARGES                = 16, // TITLE Arcane Charges
-    POWER_FURY                          = 17, // TITLE Fury
-    POWER_PAIN                          = 18, // TITLE Pain
-    POWER_ESSENCE                       = 19, // TITLE Essence
-    POWER_RUNE_BLOOD                    = 20, // TITLE Blood Runes
-    POWER_RUNE_FROST                    = 21, // TITLE Frost Runes
-    POWER_RUNE_UNHOLY                   = 22, // TITLE Unholy Runes
-    POWER_ALTERNATE_QUEST               = 23, // TITLE Alternate (Quest)
-    POWER_ALTERNATE_ENCOUNTER           = 24, // TITLE Alternate (Encounter)
-    POWER_ALTERNATE_MOUNT               = 25, // TITLE Alternate (Mount)
-    MAX_POWERS                          = 26  // SKIP
+    POWER_HAPPINESS                     = 27,
+    MAX_POWERS                          = 28  // SKIP
 };
 
 #define MAX_POWERS_PER_CLASS            10
@@ -1703,6 +1683,7 @@ enum SpellEffects
     SPELL_EFFECT_357                                = 357, // MiscValue[0] = ItemBonusList
     SPELL_EFFECT_358                                = 358, // MiscValue[0] = ItemBonusList
     SPELL_EFFECT_359                                = 359,
+    SPELL_EFFECT_360                                = 360,
     TOTAL_SPELL_EFFECTS
 };
 
@@ -3109,6 +3090,8 @@ enum Targets
     TARGET_UNIT_OWN_CRITTER                     = 150, // own battle pet from UNIT_FIELD_CRITTER
     TARGET_UNK_151                              = 151,
     TARGET_UNK_152                              = 152,
+    TARGET_UNK_153                              = 153,
+    TARGET_UNK_154                              = 154,
     TOTAL_SPELL_TARGETS
 };
 

@@ -1595,10 +1595,6 @@ void Player::RegenerateAll()
 {
     m_regenTimerCount += m_regenTimer;
 
-    for (Powers power : GetPowerTypes())
-        if (power != POWER_RUNES)
-            Regenerate(power);
-
     // Runes act as cooldowns, and they don't need to send any data
     if (GetClass() == CLASS_DEATH_KNIGHT)
     {
@@ -1815,12 +1811,6 @@ void Player::ResetAllPowers()
             break;
         case POWER_ENERGY:
             SetFullPower(POWER_ENERGY);
-            break;
-        case POWER_RUNIC_POWER:
-            SetPower(POWER_RUNIC_POWER, 0);
-            break;
-        case POWER_LUNAR_POWER:
-            SetPower(POWER_LUNAR_POWER, 0);
             break;
         default:
             break;
@@ -2507,7 +2497,6 @@ void Player::InitStatsForLevel(bool reapplyMods)
     if (GetPower(POWER_RAGE) > GetMaxPower(POWER_RAGE))
         SetFullPower(POWER_RAGE);
     SetFullPower(POWER_FOCUS);
-    SetPower(POWER_RUNIC_POWER, 0);
 
     // update level to hunter/summon pet
     if (Pet* pet = GetPet())
@@ -4346,7 +4335,6 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
         SetPower(POWER_RAGE, 0);
         SetPower(POWER_ENERGY, GetMaxPower(POWER_ENERGY) * restore_percent);
         SetPower(POWER_FOCUS, GetMaxPower(POWER_FOCUS) * restore_percent);
-        SetPower(POWER_LUNAR_POWER, 0);
     }
 
     // trigger update zone for alive state zone updates
@@ -5346,8 +5334,6 @@ void Player::UpdateRating(CombatRating cr)
                     ApplyAttackTimePercentMod(OFF_ATTACK, oldVal, false);
                     ApplyAttackTimePercentMod(BASE_ATTACK, newVal, true);
                     ApplyAttackTimePercentMod(OFF_ATTACK, newVal, true);
-                    if (GetClass() == CLASS_DEATH_KNIGHT)
-                        UpdatePowerRegen(POWER_RUNES);
                     break;
                 case CR_HASTE_RANGED:
                     ApplyAttackTimePercentMod(RANGED_ATTACK, oldVal, false);
@@ -9294,12 +9280,8 @@ uint8 Player::FindEquipSlot(Item const* item, uint8 slot, bool swap) const
             slots[0] = EQUIPMENT_SLOT_MAINHAND;
             break;
         case INVTYPE_BAG:
-            if (item->GetTemplate()->GetId() == ITEM_ACCOUNT_BANK_TAB_BAG)
-                slots = { ACCOUNT_BANK_SLOT_BAG_START + 0, ACCOUNT_BANK_SLOT_BAG_START + 1, ACCOUNT_BANK_SLOT_BAG_START + 2, ACCOUNT_BANK_SLOT_BAG_START + 3, ACCOUNT_BANK_SLOT_BAG_START + 4, NULL_SLOT };
-            else if (item->GetTemplate()->GetId() == ITEM_CHARACTER_BANK_TAB_BAG)
-                slots = { BANK_SLOT_BAG_START + 0, BANK_SLOT_BAG_START + 1, BANK_SLOT_BAG_START + 2, BANK_SLOT_BAG_START + 3, BANK_SLOT_BAG_START + 4, BANK_SLOT_BAG_START + 5 };
-            else if (item->GetTemplate()->GetClass() != ITEM_CLASS_CONTAINER || item->GetTemplate()->GetSubClass() != ITEM_SUBCLASS_REAGENT_CONTAINER)
-                slots = { INVENTORY_SLOT_BAG_START + 0, INVENTORY_SLOT_BAG_START + 1, INVENTORY_SLOT_BAG_START + 2, INVENTORY_SLOT_BAG_START + 3, NULL_SLOT, NULL_SLOT };
+            if (item->GetTemplate()->GetClass() != ITEM_CLASS_CONTAINER || item->GetTemplate()->GetSubClass() != ITEM_SUBCLASS_REAGENT_CONTAINER)
+                slots = { INVENTORY_SLOT_BAG_START + 0, INVENTORY_SLOT_BAG_START + 1, INVENTORY_SLOT_BAG_START + 2, INVENTORY_SLOT_BAG_START + 3 };
             else
                 slots[0] = REAGENT_BAG_SLOT_START;
             break;
@@ -13447,8 +13429,8 @@ void Player::ApplyEnchantment(Item* item, EnchantmentSlot slot, bool apply, bool
     if (!pEnchant)
         return;
 
-    if (!ignore_condition && pEnchant->ConditionID && !EnchantmentFitsRequirements(pEnchant->ConditionID, -1))
-        return;
+    /*if (!ignore_condition && pEnchant->ConditionID && !EnchantmentFitsRequirements(pEnchant->ConditionID, -1))
+        return;*/
 
     if (pEnchant->MinLevel > GetLevel())
         return;
@@ -18741,20 +18723,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
         int32 maxPower = m_unitData->MaxPower[i];
         SetPower(powerTypes.PowerType[i], std::min(savedPower, maxPower));
     }
-
-    SetPower(POWER_LUNAR_POWER, 0);
-    // Init rune recharge
-    if (GetPowerIndex(POWER_RUNES) < MAX_POWERS_PER_CLASS)
-    {
-        int32 runes = GetPower(POWER_RUNES);
-        int32 maxRunes = GetMaxPower(POWER_RUNES);
-        uint32 runeCooldown = GetRuneBaseCooldown();
-        while (runes < maxRunes)
-        {
-            SetRuneCooldown(runes, runeCooldown);
-            ++runes;
-        }
-    }
+  
 
     SetPersonalTabard(fields.personalTabardEmblemStyle, fields.personalTabardEmblemColor, fields.personalTabardBorderStyle,
         fields.personalTabardBorderColor, fields.personalTabardBackgroundColor);
@@ -24196,7 +24165,7 @@ void Player::CorrectMetaGemEnchants(uint8 exceptslot, bool apply)
             if (!enchantEntry)
                 continue;
 
-            uint32 condition = enchantEntry->ConditionID;
+            /*uint32 condition = enchantEntry->ConditionID;
             if (condition)
             {
                                                             //was enchant active with/without item?
@@ -24208,7 +24177,7 @@ void Player::CorrectMetaGemEnchants(uint8 exceptslot, bool apply)
                                                             //if state changed, (dis)apply enchant
                     ApplyEnchantment(pItem, EnchantmentSlot(enchant_slot), !wasactive, true, true);
                 }
-            }
+            }*/
         }
     }
 }
@@ -24240,9 +24209,9 @@ void Player::ToggleMetaGemsActive(uint8 exceptslot, bool apply)
                 continue;
 
             //only metagems to be (de)activated, so only enchants with condition
-            uint32 condition = enchantEntry->ConditionID;
+            /*uint32 condition = enchantEntry->ConditionID;
             if (condition)
-                ApplyEnchantment(pItem, EnchantmentSlot(enchant_slot), apply);
+                ApplyEnchantment(pItem, EnchantmentSlot(enchant_slot), apply);*/
         }
     }
 }
@@ -25434,7 +25403,7 @@ void Player::LearnSkillRewardedSpells(uint32 skillId, uint32 skillValue, Races r
         }
 
         // Check race if set
-        if (!ability->RaceMask.IsEmpty() && !ability->RaceMask.HasRace(race))
+        if (!ability->RaceMasks.IsEmpty() && !ability->RaceMasks.HasRace(race))
             continue;
 
         // Check class if set
@@ -25861,7 +25830,7 @@ bool Player::IsSpellFitByClassAndRace(uint32 spell_id) const
     for (SkillLineAbilityMap::const_iterator _spell_idx = bounds.first; _spell_idx != bounds.second; ++_spell_idx)
     {
         // skip wrong race skills
-        if (!_spell_idx->second->RaceMask.IsEmpty() && !_spell_idx->second->RaceMask.HasRace(race))
+        if (!_spell_idx->second->RaceMasks.IsEmpty() && !_spell_idx->second->RaceMasks.HasRace(race))
             continue;
 
         // skip wrong class skills
@@ -26451,7 +26420,6 @@ void Player::ResurrectUsingRequestDataImpl()
     SetPower(POWER_RAGE, 0);
     SetFullPower(POWER_ENERGY);
     SetFullPower(POWER_FOCUS);
-    SetPower(POWER_LUNAR_POWER, 0);
 
     if (uint32 aura = resurrectAura)
         CastSpell(this, aura, CastSpellExtraArgs(TRIGGERED_FULL_MASK)
@@ -27053,7 +27021,7 @@ void Player::SetTitle(CharTitlesEntry const* title, bool lost)
 
 uint8 Player::GetRunesState() const
 {
-    return uint8(m_runes->RuneState & ((1 << GetMaxPower(POWER_RUNES)) - 1));
+   return uint8(m_runes->RuneState - 1);
 }
 
 uint32 Player::GetRuneBaseCooldown() const
@@ -27062,7 +27030,6 @@ uint32 Player::GetRuneBaseCooldown() const
 
     AuraEffectList const& regenAura = GetAuraEffectsByType(SPELL_AURA_MOD_POWER_REGEN_PERCENT);
     for (AuraEffectList::const_iterator i = regenAura.begin();i != regenAura.end(); ++i)
-        if ((*i)->GetMiscValue() == POWER_RUNES)
             cooldown *= 1.0 - (*i)->GetAmount() / 100.0;
 
     // Runes cooldown are now affected by player's haste from equipment ...
@@ -27080,11 +27047,11 @@ uint32 Player::GetRuneBaseCooldown() const
 
 void Player::SetRuneCooldown(uint8 index, uint32 cooldown)
 {
-    m_runes->Cooldown[index] = cooldown;
+   /* m_runes->Cooldown[index] = cooldown;
     m_runes->SetRuneState(index, (cooldown == 0) ? true : false);
     int32 activeRunes = std::count(std::begin(m_runes->Cooldown), &m_runes->Cooldown[std::min(GetMaxPower(POWER_RUNES), MAX_RUNES)], 0u);
     if (activeRunes != GetPower(POWER_RUNES))
-        SetPower(POWER_RUNES, activeRunes);
+        SetPower(POWER_RUNES, activeRunes);*/
 }
 
 void Runes::SetRuneState(uint8 index, bool set /*= true*/)
@@ -27106,7 +27073,7 @@ void Runes::SetRuneState(uint8 index, bool set /*= true*/)
 
 void Player::ResyncRunes() const
 {
-    uint32 maxRunes = uint32(GetMaxPower(POWER_RUNES));
+   /* uint32 maxRunes = uint32(GetMaxPower(POWER_RUNES));
 
     WorldPackets::Spells::ResyncRunes data(maxRunes);
     data.Runes.Start = uint8((1 << maxRunes) - 1);
@@ -27116,12 +27083,12 @@ void Player::ResyncRunes() const
     for (uint32 i = 0; i < maxRunes; ++i)
         data.Runes.Cooldowns.push_back(uint8((baseCd - float(GetRuneCooldown(i))) / baseCd * 255));
 
-    SendDirectMessage(data.Write());
+    SendDirectMessage(data.Write());*/
 }
 
 void Player::InitRunes()
 {
-    if (GetClass() != CLASS_DEATH_KNIGHT)
+    /*if (GetClass() != CLASS_DEATH_KNIGHT)
         return;
 
     uint32 runeIndex = GetPowerIndex(POWER_RUNES);
@@ -27135,7 +27102,7 @@ void Player::InitRunes()
         SetRuneCooldown(i, 0);                                          // reset cooldowns
 
     SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerRegenFlatModifier, runeIndex), 0.0f);
-    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerRegenInterruptedFlatModifier, runeIndex), 0.0f);
+    SetUpdateFieldValue(m_values.ModifyValue(&Unit::m_unitData).ModifyValue(&UF::UnitData::PowerRegenInterruptedFlatModifier, runeIndex), 0.0f);*/
 }
 
 void Player::AutoStoreLoot(uint8 bag, uint8 slot, uint32 loot_id, LootStore const& store, ItemContext context, bool broadcast, bool pushed, bool createdByPlayer)
