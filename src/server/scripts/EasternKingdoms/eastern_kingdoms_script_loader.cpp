@@ -20,7 +20,6 @@ void AddSC_boss_alizabal();                  //Baradin Hold
 void AddSC_boss_occuthar();
 void AddSC_boss_argaloth();
 void AddSC_instance_baradin_hold();
-void AddSC_instance_bastion_of_twilight();   //Bastion of Twilight
 void AddSC_boss_romogg_bonecrusher();        //Blackrock Caverns
 void AddSC_boss_corla();
 void AddSC_boss_karsh_steelbender();
@@ -65,10 +64,8 @@ void AddSC_boss_chromaggus();
 void AddSC_boss_nefarian();
 void AddSC_instance_blackwing_lair();
 void AddSC_instance_deadmines();             //Deadmines
-void AddSC_gilneas_chapter_1();              //Gilneas
 void AddSC_gnomeregan();                     //Gnomeregan
 void AddSC_instance_gnomeregan();
-void AddSC_instance_grim_batol();            //Grim Batol
 void AddSC_boss_attumen();                   //Karazhan
 void AddSC_boss_curator();
 void AddSC_boss_maiden_of_virtue();
@@ -81,12 +78,7 @@ void AddSC_boss_netherspite();
 void AddSC_instance_karazhan();
 void AddSC_karazhan();
 void AddSC_boss_nightbane();
-void AddSC_boss_felblood_kaelthas();         // Magister's Terrace
-void AddSC_boss_selin_fireheart();
-void AddSC_boss_vexallus();
 void AddSC_boss_priestess_delrissa();
-void AddSC_instance_magisters_terrace();
-void AddSC_magisters_terrace();
 void AddSC_boss_lucifron();                  //Molten core
 void AddSC_boss_magmadar();
 void AddSC_boss_gehennas();
@@ -145,16 +137,6 @@ void AddSC_boss_dathrohan_balnazzar();
 void AddSC_boss_order_of_silver_hand();
 void AddSC_instance_stratholme();
 void AddSC_stratholme();
-void AddSC_sunken_temple();                  // Sunken Temple
-void AddSC_instance_sunken_temple();
-void AddSC_instance_sunwell_plateau();       //Sunwell Plateau
-void AddSC_boss_kalecgos();
-void AddSC_boss_brutallus();
-void AddSC_boss_felmyst();
-void AddSC_boss_eredar_twins();
-void AddSC_boss_muru();
-void AddSC_boss_kiljaeden();
-void AddSC_sunwell_plateau();
 void AddSC_boss_archaedas();                 //Uldaman
 void AddSC_boss_ironaya();
 void AddSC_uldaman();
@@ -163,7 +145,6 @@ void AddSC_instance_the_stockade();          //The Stockade
 void AddSC_boss_hogger();
 void AddSC_boss_randolph_moloch();
 void AddSC_boss_lord_overheat();
-void AddSC_instance_throne_of_the_tides();   //Throne of the Tides
 void AddSC_boss_akilzon();                   //Zul'Aman
 void AddSC_boss_halazzi();
 void AddSC_boss_hex_lord_malacrass();
@@ -196,32 +177,14 @@ void AddSC_elwynn_forest();
 void AddSC_eversong_woods();
 void AddSC_ghostlands();
 void AddSC_hinterlands();
-void AddSC_isle_of_queldanas();
 void AddSC_redridge_mountains();
 void AddSC_silverpine_forest();
 void AddSC_stormwind_city();
 //void AddSC_swamp_of_sorrows();
 void AddSC_tirisfal_glades();
-void AddSC_tol_barad();
 void AddSC_undercity();
 //void AddSC_western_plaguelands();
 void AddSC_westfall();
-
-// Return to Karazhan
-void AddSC_instance_return_to_karazhan();
-void AddSC_boss_maiden_of_virtue_rtk();
-void AddSC_boss_the_curator_rtk();
-void AddSC_boss_mana_devourer();
-void AddSC_boss_shade_of_medivh();
-
-// Twilight Highlands
-void AddSC_worldboss_julak_doom();
-
-// Vashjir
-void AddSC_vashjir();
-void AddSC_abyssal_depths();
-void AddSC_worldboss_mobus();
-void AddSC_vashjir_chapter_1_defense_of_the_briny_cutter();
 
 // The name of this function should match:
 // void Add${NameOfDirectory}Scripts()
@@ -231,7 +194,6 @@ void AddEasternKingdomsScripts()
     AddSC_boss_occuthar();
     AddSC_boss_argaloth();
     AddSC_instance_baradin_hold();
-    AddSC_instance_bastion_of_twilight();   //Bastion of Twilight
     AddSC_boss_romogg_bonecrusher();        //Blackrock Caverns
     AddSC_boss_corla();
     AddSC_boss_karsh_steelbender();
@@ -276,10 +238,8 @@ void AddEasternKingdomsScripts()
     AddSC_boss_nefarian();
     AddSC_instance_blackwing_lair();
     AddSC_instance_deadmines();             //Deadmines
-    AddSC_gilneas_chapter_1();              //Gilneas
     AddSC_gnomeregan();                     //Gnomeregan
     AddSC_instance_gnomeregan();
-    AddSC_instance_grim_batol();            //Grim Batol
     AddSC_boss_attumen();                   //Karazhan
     AddSC_boss_curator();
     AddSC_boss_maiden_of_virtue();
@@ -292,12 +252,6 @@ void AddEasternKingdomsScripts()
     AddSC_instance_karazhan();
     AddSC_karazhan();
     AddSC_boss_nightbane();
-    AddSC_boss_felblood_kaelthas();         // Magister's Terrace
-    AddSC_boss_selin_fireheart();
-    AddSC_boss_vexallus();
-    AddSC_boss_priestess_delrissa();
-    AddSC_instance_magisters_terrace();
-    AddSC_magisters_terrace();
     AddSC_boss_lucifron();                  //Molten core
     AddSC_boss_magmadar();
     AddSC_boss_gehennas();
@@ -356,21 +310,10 @@ void AddEasternKingdomsScripts()
     AddSC_boss_order_of_silver_hand();
     AddSC_instance_stratholme();
     AddSC_stratholme();
-    AddSC_sunken_temple();                  // Sunken Temple
-    AddSC_instance_sunken_temple();
-    AddSC_instance_sunwell_plateau();       //Sunwell Plateau
-    AddSC_boss_kalecgos();
-    AddSC_boss_brutallus();
-    AddSC_boss_felmyst();
-    AddSC_boss_eredar_twins();
-    AddSC_boss_muru();
-    AddSC_boss_kiljaeden();
-    AddSC_sunwell_plateau();
     AddSC_instance_the_stockade();          //The Stockade
     AddSC_boss_hogger();
     AddSC_boss_randolph_moloch();
     AddSC_boss_lord_overheat();
-    AddSC_instance_throne_of_the_tides();   //Throne of the Tides
     AddSC_boss_archaedas();                 //Uldaman
     AddSC_boss_ironaya();
     AddSC_uldaman();
@@ -406,31 +349,13 @@ void AddEasternKingdomsScripts()
     AddSC_elwynn_forest();
     AddSC_eversong_woods();
     AddSC_ghostlands();
-    AddSC_hinterlands();
-    AddSC_isle_of_queldanas();
+    AddSC_hinterlands();;
     AddSC_redridge_mountains();
     AddSC_silverpine_forest();
     AddSC_stormwind_city();
     //AddSC_swamp_of_sorrows();
     AddSC_tirisfal_glades();
-    AddSC_tol_barad();
     AddSC_undercity();
     //AddSC_western_plaguelands();
     AddSC_westfall();
-
-    // Return to Karazhan
-    AddSC_instance_return_to_karazhan();
-    AddSC_boss_maiden_of_virtue_rtk();
-    AddSC_boss_the_curator_rtk();
-    AddSC_boss_mana_devourer();
-    AddSC_boss_shade_of_medivh();
-
-    // Twilight Highlands
-    AddSC_worldboss_julak_doom();
-
-    // Vashjir
-    AddSC_vashjir();
-    AddSC_abyssal_depths();
-    AddSC_worldboss_mobus();
-    AddSC_vashjir_chapter_1_defense_of_the_briny_cutter();
 }
