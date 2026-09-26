@@ -2641,12 +2641,10 @@ enum class TransmogOutfitSlotOption : uint8
     RangedWeapon        = 3,
     OffHand             = 4,
     Shield              = 5,
-    DeprecatedReuseMe   = 6,
-    FuryTwoHandedWeapon = 7,
-    ArtifactSpecOne     = 8,
-    ArtifactSpecTwo     = 9,
-    ArtifactSpecThree   = 10,
-    ArtifactSpecFour    = 11,
+    Null12              = 12,
+    Null13              = 13,
+    Null14              = 14,
+    Null15              = 15,
 
     Max
 };

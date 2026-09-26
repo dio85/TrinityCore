@@ -491,6 +491,12 @@ void TransportMgr::GeneratePath(GameObjectTemplate const* goInfo, TransportTempl
     uint32 pathId = goInfo->moTransport.taxiPathID;
     TaxiPathNodeList const& path = sTaxiPathNodesByPath[pathId];
 
+    if (path.empty())
+    {
+        TC_LOG_ERROR("sql.sql", "Transport {} (name: {}) has an empty TaxiPath {} in `taxipathnode`, skipped.", goInfo->entry, goInfo->name, pathId);
+        return;
+    }
+
     transport->Speed = double(goInfo->moTransport.moveSpeed);
     transport->AccelerationRate = double(goInfo->moTransport.accelRate);
     transport->AccelerationTime = transport->Speed / transport->AccelerationRate;
