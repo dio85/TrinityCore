@@ -40,7 +40,6 @@
 #include "ObjectMgr.h"
 #include "PhasingHandler.h"
 #include "Player.h"
-#include "QuestMgr.h"
 #include "RBAC.h"
 #include "RealmList.h"
 #include "ReputationMgr.h"
@@ -3274,12 +3273,6 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
                 return false;
             break;
         }
-        case ModifierTreeType::PlayerIsOnQuestInQuestline: // 236
-        {
-            if (!QuestMgr::IsQuestLineQuestActiveForPlayer(reqValue, referencePlayer))
-                return false;
-            break;
-        }
         case ModifierTreeType::PlayerIsQnQuestLinkedToScheduledWorldStateGroup: // 237
             return false; // OBSOLETE (db2 removed)
         case ModifierTreeType::PlayerIsInRaidGroup: // 238
@@ -3298,31 +3291,6 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
             if (!pvpTier)
                 return false;
             if (pvpTier->Rank < int32(reqValue))
-                return false;
-            break;
-        }
-        case ModifierTreeType::PlayerCanAcceptQuestInQuestline: // 240
-        {
-            if (!QuestMgr::IsQuestLineQuestAvailableForPlayer(reqValue, referencePlayer))
-                return false;
-            break;
-        }
-        case ModifierTreeType::PlayerHasCompletedQuestline: // 241
-        {
-            if (!QuestMgr::IsQuestLineCompletedByPlayer(reqValue, referencePlayer))
-                return false;
-            break;
-        }
-        case ModifierTreeType::PlayerHasCompletedQuestlineQuestCount: // 242
-        {
-            if (QuestMgr::GetQuestLineStatsForPlayer(reqValue, referencePlayer).Completed < reqValue)
-                return false;
-            break;
-        }
-        case ModifierTreeType::PlayerHasCompletedPercentageOfQuestline: // 243
-        {
-            QuestMgr::QuestLineStats questLineStats = QuestMgr::GetQuestLineStatsForPlayer(reqValue, referencePlayer);
-            if (GetPctOf(questLineStats.Completed, questLineStats.Total) < reqValue)
                 return false;
             break;
         }
@@ -3994,10 +3962,6 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
         }
         case ModifierTreeType::PlayerIsInTimerunningSeason: // 386
             if (referencePlayer->m_activePlayerData->TimerunningSeasonID != int32(reqValue))
-                return false;
-            break;
-        case ModifierTreeType::PlayerHasCompletedCampaign: // 388
-            if (!QuestMgr::IsCampaignCompletedByPlayer(reqValue, referencePlayer))
                 return false;
             break;
         case ModifierTreeType::TargetCreatureClassificationEqual: // 389

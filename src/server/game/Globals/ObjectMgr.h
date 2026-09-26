@@ -518,8 +518,6 @@ typedef std::unordered_map<uint32, QuestObjectivesLocale> QuestObjectivesLocaleC
 typedef std::unordered_map<uint32, QuestOfferRewardLocale> QuestOfferRewardLocaleContainer;
 typedef std::unordered_map<uint32, QuestRequestItemsLocale> QuestRequestItemsLocaleContainer;
 typedef std::unordered_map<uint32, PageTextLocale> PageTextLocaleContainer;
-typedef std::unordered_map<uint32, std::vector<uint32>> UiMapQuestLinesMap;
-typedef std::unordered_map<uint32, std::vector<uint32>> UiMapQuestsMap;
 typedef std::unordered_map<uint32, VehicleSeatAddon> VehicleSeatAddonContainer;
 
 struct GossipMenuItemsLocale
@@ -1178,9 +1176,6 @@ class TC_GAME_API ObjectMgr
 
         QuestPOIData const* GetQuestPOIData(int32 questId);
 
-        std::vector<uint32> const* GetUiMapQuestLinesList(uint32 uiMapId) const;
-        std::vector<uint32> const* GetUiMapQuestsList(uint32 uiMapId) const;
-
         VehicleTemplate const* GetVehicleTemplate(Vehicle* veh) const;
         VehicleAccessoryList const* GetVehicleAccessoryList(Vehicle* veh) const;
 
@@ -1313,12 +1308,6 @@ class TC_GAME_API ObjectMgr
         void LoadAreaPhases();
 
         void LoadSceneTemplates();
-
-        void LoadPlayerChoices();
-        void LoadPlayerChoicesLocale();
-
-        void LoadUiMapQuestLines();
-        void LoadUiMapQuests();
 
         void LoadSpawnTrackingTemplates();
         void LoadSpawnTrackingQuestObjectives();
@@ -1858,9 +1847,6 @@ class TC_GAME_API ObjectMgr
         RealmNameContainer _realmNameStore;
 
         SceneTemplateContainer _sceneTemplateStore;
-
-        UiMapQuestLinesMap _uiMapQuestLinesStore;
-        UiMapQuestsMap _uiMapQuestsStore;
 
         std::unordered_map<int32, JumpChargeParams> _jumpChargeParams;
 

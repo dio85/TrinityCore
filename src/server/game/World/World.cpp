@@ -82,7 +82,6 @@
 #include "Player.h"
 #include "PlayerDump.h"
 #include "PoolMgr.h"
-#include "QuestMgr.h"
 #include "QuestPools.h"
 #include "RealmList.h"
 #include "ScenarioMgr.h"
@@ -1586,10 +1585,6 @@ bool World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading Weather Data...");
     WeatherMgr::LoadWeatherData();
 
-    TC_LOG_INFO("server.loading", "Loading Quests...");
-    QuestMgr::Load();
-    sObjectMgr->LoadQuests();                                    // must be loaded after DBCs, creature_template, items, gameobject tables
-
     TC_LOG_INFO("server.loading", "Checking Quest Disables");
     DisableMgr::CheckQuestDisables();                           // must be after loading quests
 
@@ -1697,9 +1692,6 @@ bool World::SetInitialWorldSettings()
     TC_LOG_INFO("server.loading", "Loading Conversation Templates...");
     sConversationDataStore->LoadConversationTemplates();
 
-    TC_LOG_INFO("server.loading", "Loading Player Choices...");
-    sObjectMgr->LoadPlayerChoices();
-
     TC_LOG_INFO("server.loading", "Loading Spawn Tracking Templates...");
     sObjectMgr->LoadSpawnTrackingTemplates();
 
@@ -1711,18 +1703,6 @@ bool World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading Spawn Tracking Spawn States...");
     sObjectMgr->LoadSpawnTrackingStates();
-
-    if (m_bool_configs[CONFIG_LOAD_LOCALES])
-    {
-        TC_LOG_INFO("server.loading", "Loading Player Choices Locales...");
-        sObjectMgr->LoadPlayerChoicesLocale();
-    }
-
-    TC_LOG_INFO("server.loading", "Loading UIMap questlines...");
-    sObjectMgr->LoadUiMapQuestLines();
-
-    TC_LOG_INFO("server.loading", "Loading UIMap quests...");
-    sObjectMgr->LoadUiMapQuests();
 
     TC_LOG_INFO("server.loading", "Loading Jump Charge Params...");
     sObjectMgr->LoadJumpChargeParams();
@@ -2061,13 +2041,6 @@ bool World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading battle pets info...");
     BattlePets::BattlePetMgr::Initialize();
-
-    TC_LOG_INFO("server.loading", "Loading scenarios");
-    sScenarioMgr->LoadDB2Data();
-    sScenarioMgr->LoadDBData();
-
-    TC_LOG_INFO("server.loading", "Loading scenario poi data");
-    sScenarioMgr->LoadScenarioPOI();
 
     TC_LOG_INFO("server.loading", "Loading phase names...");
     sObjectMgr->LoadPhaseNames();

@@ -2904,8 +2904,6 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
                 .ModifyValue(&UF::RestInfo::Threshold), threshold);
         }
 
-        void SendPlayerChoice(ObjectGuid sender, int32 choiceId);
-
         bool MeetPlayerCondition(uint32 conditionId) const;
 
         bool HasPlayerFlag(PlayerFlags flags) const { return (*m_playerData->PlayerFlags & flags) != 0; }

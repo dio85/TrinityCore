@@ -108,7 +108,6 @@
 #include "QueryHolder.h"
 #include "QueryResultStructured.h"
 #include "QuestDef.h"
-#include "QuestMgr.h"
 #include "QuestObjectiveCriteriaMgr.h"
 #include "QuestPackets.h"
 #include "RealmList.h"
@@ -16055,8 +16054,6 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object const* questgiver) const
                     result |= quest->HasFlag(QUEST_FLAGS_HIDE_REWARD_POI) ? QuestGiverStatus::CovenantCallingRewardCompleteNoPOI : QuestGiverStatus::CovenantCallingRewardCompletePOI;
                 else if (quest->HasFlagEx(QUEST_FLAGS_EX_LEGENDARY))
                     result |= quest->HasFlag(QUEST_FLAGS_HIDE_REWARD_POI) ? QuestGiverStatus::LegendaryRewardCompleteNoPOI : QuestGiverStatus::LegendaryRewardCompletePOI;
-                else if (QuestMgr::IsCampaignQuestStatusVisibleForPlayer(questId, this))
-                    result |= quest->HasFlag(QUEST_FLAGS_HIDE_REWARD_POI) ? QuestGiverStatus::JourneyRewardCompleteNoPOI : QuestGiverStatus::JourneyRewardCompletePOI;
                 else if (quest->IsDailyOrWeekly())
                     result |= quest->HasFlag(QUEST_FLAGS_HIDE_REWARD_POI) ? QuestGiverStatus::RepeatableRewardCompleteNoPOI : QuestGiverStatus::RepeatableRewardCompletePOI;
                 else
@@ -16071,8 +16068,6 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object const* questgiver) const
                     result |= QuestGiverStatus::CovenantCallingReward;
                 else if (quest->HasFlagEx(QUEST_FLAGS_EX_LEGENDARY))
                     result |= QuestGiverStatus::LegendaryReward;
-                else if (QuestMgr::IsCampaignQuestStatusVisibleForPlayer(questId, this))
-                    result |= QuestGiverStatus::JourneyReward;
                 else if (quest->IsDailyOrWeekly())
                     result |= QuestGiverStatus::RepeatableReward;
                 else
@@ -16116,8 +16111,6 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object const* questgiver) const
                         result |= QuestGiverStatus::CovenantCallingQuest;
                     else if (quest->HasFlagEx(QUEST_FLAGS_EX_LEGENDARY))
                         result |= isTrivial ? QuestGiverStatus::TrivialLegendaryQuest : QuestGiverStatus::LegendaryQuest;
-                    else if (QuestMgr::IsCampaignQuestStatusVisibleForPlayer(questId, this))
-                        result |= isTrivial ? QuestGiverStatus::TrivialJourneyQuest : QuestGiverStatus::JourneyQuest;
                     else if (quest->IsDailyOrWeekly())
                         result |= isTrivial ? QuestGiverStatus::TrivialRepeatableQuest : QuestGiverStatus::RepeatableQuest;
                     else
@@ -16127,8 +16120,6 @@ QuestGiverStatus Player::GetQuestDialogStatus(Object const* questgiver) const
                     result |= QuestGiverStatus::FutureImportantQuest;
                 else if (quest->HasFlagEx(QUEST_FLAGS_EX_LEGENDARY))
                     result |= QuestGiverStatus::FutureLegendaryQuest;
-                else if (QuestMgr::IsCampaignQuestStatusVisibleForPlayer(questId, this))
-                    result |= QuestGiverStatus::FutureJourneyQuest;
                 else
                     result |= QuestGiverStatus::Future;
             }
@@ -29978,135 +29969,6 @@ void Player::SendMovementSetCollisionHeight(float height, WorldPackets::Movement
     updateCollisionHeight.Height = height;
     updateCollisionHeight.Scale = GetObjectScale();
     SendMessageToSet(updateCollisionHeight.Write(), false);
-}
-
-void Player::SendPlayerChoice(ObjectGuid sender, int32 choiceId)
-{
-    PlayerChoice const* playerChoice = sObjectMgr->GetPlayerChoice(choiceId);
-    if (!playerChoice)
-        return;
-
-    LocaleConstant locale = GetSession()->GetSessionDbLocaleIndex();
-    PlayerChoiceLocale const* playerChoiceLocale = locale != DEFAULT_LOCALE ? sObjectMgr->GetPlayerChoiceLocale(choiceId) : nullptr;
-
-    PlayerTalkClass->GetInteractionData().StartInteraction(sender, PlayerInteractionType::PlayerChoice);
-    PlayerTalkClass->GetInteractionData().GetPlayerChoice()->SetChoiceId(choiceId);
-
-    WorldPackets::Quest::DisplayPlayerChoice displayPlayerChoice;
-    displayPlayerChoice.SenderGUID = sender;
-    displayPlayerChoice.ChoiceID = choiceId;
-    displayPlayerChoice.UiTextureKitID = playerChoice->UiTextureKitId;
-    displayPlayerChoice.SoundKitID = playerChoice->SoundKitId;
-    displayPlayerChoice.CloseUISoundKitID = playerChoice->CloseSoundKitId;
-    if (playerChoice->Duration > 0s)
-    {
-        SystemTimePoint expireTime = GameTime::GetSystemTime() + playerChoice->Duration;
-        PlayerTalkClass->GetInteractionData().GetPlayerChoice()->SetExpireTime(expireTime);
-        displayPlayerChoice.ExpireTime = expireTime;
-    }
-
-    displayPlayerChoice.Question = playerChoice->Question;
-    if (playerChoiceLocale)
-        ObjectMgr::GetLocaleString(playerChoiceLocale->Question, locale, displayPlayerChoice.Question);
-
-    displayPlayerChoice.Responses.reserve(playerChoice->Responses.size());
-    displayPlayerChoice.InfiniteRange = playerChoice->InfiniteRange;
-    displayPlayerChoice.HideWarboardHeader = playerChoice->HideWarboardHeader;
-    displayPlayerChoice.KeepOpenAfterChoice = playerChoice->KeepOpenAfterChoice;
-    displayPlayerChoice.ShowChoicesAsList = playerChoice->ShowChoicesAsList;
-    displayPlayerChoice.RequiresSelection = playerChoice->RequiresSelection;
-    displayPlayerChoice.ShowChoicesAsGrid = playerChoice->ShowChoicesAsGrid;
-    displayPlayerChoice.HideAnswerArt = playerChoice->HideAnswerArt;
-    displayPlayerChoice.ShowChoicesAsColumns = playerChoice->ShowChoicesAsColumns;
-
-    for (std::size_t i = 0; i < playerChoice->Responses.size() && (!playerChoice->MaxResponses || displayPlayerChoice.Responses.size() < *playerChoice->MaxResponses); ++i)
-    {
-        PlayerChoiceResponse const& playerChoiceResponseTemplate = playerChoice->Responses[i];
-        if (!sConditionMgr->IsObjectMeetingPlayerChoiceResponseConditions(choiceId, playerChoiceResponseTemplate.ResponseId, this))
-            continue;
-
-        WorldPackets::Quest::PlayerChoiceResponse& playerChoiceResponse = displayPlayerChoice.Responses.emplace_back();
-        playerChoiceResponse.ResponseID = playerChoiceResponseTemplate.ResponseId;
-        playerChoiceResponse.ResponseIdentifier = PlayerTalkClass->GetInteractionData().AddPlayerChoiceResponse(playerChoiceResponseTemplate.ResponseId);
-        playerChoiceResponse.ChoiceArtFileID = playerChoiceResponseTemplate.ChoiceArtFileId;
-        playerChoiceResponse.Flags = playerChoiceResponseTemplate.Flags.AsUnderlyingType();
-        playerChoiceResponse.WidgetSetID = playerChoiceResponseTemplate.WidgetSetID;
-        playerChoiceResponse.UiTextureAtlasElementID = playerChoiceResponseTemplate.UiTextureAtlasElementID;
-        playerChoiceResponse.SoundKitID = playerChoiceResponseTemplate.SoundKitID;
-        playerChoiceResponse.GroupID = playerChoiceResponseTemplate.GroupID;
-        playerChoiceResponse.UiTextureKitID = playerChoiceResponseTemplate.UiTextureKitID;
-        playerChoiceResponse.Answer = playerChoiceResponseTemplate.Answer;
-        playerChoiceResponse.Header = playerChoiceResponseTemplate.Header;
-        playerChoiceResponse.SubHeader = playerChoiceResponseTemplate.SubHeader;
-        playerChoiceResponse.ButtonTooltip = playerChoiceResponseTemplate.ButtonTooltip;
-        playerChoiceResponse.Description = playerChoiceResponseTemplate.Description;
-        playerChoiceResponse.Confirmation = playerChoiceResponseTemplate.Confirmation;
-        if (playerChoiceLocale)
-        {
-            if (PlayerChoiceResponseLocale const* playerChoiceResponseLocale = Trinity::Containers::MapGetValuePtr(playerChoiceLocale->Responses, playerChoiceResponseTemplate.ResponseId))
-            {
-                ObjectMgr::GetLocaleString(playerChoiceResponseLocale->Answer, locale, playerChoiceResponse.Answer);
-                ObjectMgr::GetLocaleString(playerChoiceResponseLocale->Header, locale, playerChoiceResponse.Header);
-                ObjectMgr::GetLocaleString(playerChoiceResponseLocale->SubHeader, locale, playerChoiceResponse.SubHeader);
-                ObjectMgr::GetLocaleString(playerChoiceResponseLocale->ButtonTooltip, locale, playerChoiceResponse.ButtonTooltip);
-                ObjectMgr::GetLocaleString(playerChoiceResponseLocale->Description, locale, playerChoiceResponse.Description);
-                ObjectMgr::GetLocaleString(playerChoiceResponseLocale->Confirmation, locale, playerChoiceResponse.Confirmation);
-            }
-        }
-
-        if (playerChoiceResponseTemplate.Reward)
-        {
-            playerChoiceResponse.Reward.emplace();
-            playerChoiceResponse.Reward->TitleID = playerChoiceResponseTemplate.Reward->TitleId;
-            playerChoiceResponse.Reward->PackageID = playerChoiceResponseTemplate.Reward->PackageId;
-            playerChoiceResponse.Reward->SkillLineID = playerChoiceResponseTemplate.Reward->SkillLineId;
-            playerChoiceResponse.Reward->SkillPointCount = playerChoiceResponseTemplate.Reward->SkillPointCount;
-            playerChoiceResponse.Reward->ArenaPointCount = playerChoiceResponseTemplate.Reward->ArenaPointCount;
-            playerChoiceResponse.Reward->HonorPointCount = playerChoiceResponseTemplate.Reward->HonorPointCount;
-            playerChoiceResponse.Reward->Money = playerChoiceResponseTemplate.Reward->Money;
-            playerChoiceResponse.Reward->Xp = playerChoiceResponseTemplate.Reward->Xp;
-
-            auto fillRewardItems = []<typename Src>(std::vector<Src> const& src, std::vector<WorldPackets::Quest::PlayerChoiceResponseRewardEntry>& dest)
-            {
-                dest.resize(src.size());
-                for (std::size_t j = 0; j < src.size(); ++j)
-                {
-                    Src const& rewardEntryTemplate = src[j];
-                    WorldPackets::Quest::PlayerChoiceResponseRewardEntry& rewardEntry = dest[j];
-                    rewardEntry.Item.ItemID = rewardEntryTemplate.Id;
-                    rewardEntry.Quantity = rewardEntryTemplate.Quantity;
-                    if constexpr (std::is_same_v<Src, PlayerChoiceResponseRewardItem>)
-                    {
-                        if (!rewardEntryTemplate.BonusListIDs.empty())
-                        {
-                            rewardEntry.Item.ItemBonus.emplace();
-                            rewardEntry.Item.ItemBonus->BonusListIDs = rewardEntryTemplate.BonusListIDs;
-                        }
-                    }
-                }
-            };
-
-            fillRewardItems(playerChoiceResponseTemplate.Reward->Items, playerChoiceResponse.Reward->Items);
-            fillRewardItems(playerChoiceResponseTemplate.Reward->Currency, playerChoiceResponse.Reward->Currencies);
-            fillRewardItems(playerChoiceResponseTemplate.Reward->Faction, playerChoiceResponse.Reward->Factions);
-            fillRewardItems(playerChoiceResponseTemplate.Reward->ItemChoices, playerChoiceResponse.Reward->ItemChoices);
-        }
-
-        playerChoiceResponse.RewardQuestID = playerChoiceResponseTemplate.RewardQuestID;
-
-        if (playerChoiceResponseTemplate.MawPower)
-        {
-            WorldPackets::Quest::PlayerChoiceResponseMawPower& mawPower = playerChoiceResponse.MawPower.emplace();
-            mawPower.TypeArtFileID = playerChoiceResponseTemplate.MawPower->TypeArtFileID;
-            mawPower.Rarity = playerChoiceResponseTemplate.MawPower->Rarity;
-            mawPower.SpellID = playerChoiceResponseTemplate.MawPower->SpellID;
-            mawPower.MaxStacks = playerChoiceResponseTemplate.MawPower->MaxStacks;
-
-            displayPlayerChoice.HasPowerChoice = true;
-        }
-    }
-
-    SendDirectMessage(displayPlayerChoice.Write());
 }
 
 bool Player::MeetPlayerCondition(uint32 conditionId) const

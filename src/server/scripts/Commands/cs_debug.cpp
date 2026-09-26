@@ -92,7 +92,6 @@ public:
             { "sellerror",          HandleDebugSendSellErrorCommand,       rbac::RBAC_PERM_COMMAND_DEBUG,   Console::No },
             { "setphaseshift",      HandleDebugSendSetPhaseShiftCommand,   rbac::RBAC_PERM_COMMAND_DEBUG,   Console::No },
             { "spellfail",          HandleDebugSendSpellFailCommand,       rbac::RBAC_PERM_COMMAND_DEBUG,   Console::No },
-            { "playerchoice",       HandleDebugSendPlayerChoiceCommand,    rbac::RBAC_PERM_COMMAND_DEBUG,   Console::No },
         };
         static ChatCommandTable debugCommandTable =
         {
@@ -302,13 +301,6 @@ public:
         castFailed.FailedArg1 = failArg1.value_or(-1);
         castFailed.FailedArg2 = failArg2.value_or(-1);
         handler->GetSession()->SendPacket(castFailed.Write());
-        return true;
-    }
-
-    static bool HandleDebugSendPlayerChoiceCommand(ChatHandler* handler, int32 choiceId)
-    {
-        Player* player = handler->GetPlayer();
-        player->SendPlayerChoice(player->GetGUID(), choiceId);
         return true;
     }
 

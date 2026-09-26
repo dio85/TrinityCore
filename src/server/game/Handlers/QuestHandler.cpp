@@ -35,7 +35,6 @@
 #include "PlayerChoice.h"
 #include "PoolMgr.h"
 #include "QuestDef.h"
-#include "QuestMgr.h"
 #include "QuestPackets.h"
 #include "QuestPools.h"
 #include "ReputationMgr.h"
@@ -753,107 +752,6 @@ void WorldSession::HandleRequestWorldQuestUpdate(WorldPackets::Quest::RequestWor
 
     /// @todo: 7.x Has to be implemented
     //response.WorldQuestUpdates.push_back(WorldPackets::Quest::WorldQuestUpdateInfo(lastUpdate, questID, timer, variableID, value));
-
-    SendPacket(response.Write());
-}
-
-void WorldSession::HandlePlayerChoiceResponse(WorldPackets::Quest::ChoiceResponse const& choiceResponse)
-{
-    PlayerChoiceData const* playerChoiceData = _player->PlayerTalkClass->GetInteractionData().GetPlayerChoice();
-    if (!playerChoiceData)
-    {
-        TC_LOG_ERROR("entities.player.cheat", "Error in CMSG_CHOICE_RESPONSE: {} tried to respond to invalid player choice {} (none allowed)",
-            GetPlayerInfo(), choiceResponse.ChoiceID);
-        return;
-    }
-
-    if (playerChoiceData->GetChoiceId() != uint32(choiceResponse.ChoiceID))
-    {
-        TC_LOG_ERROR("entities.player.cheat", "Error in CMSG_CHOICE_RESPONSE: {} tried to respond to invalid player choice {} ({} allowed)",
-            GetPlayerInfo(), choiceResponse.ChoiceID, playerChoiceData->GetChoiceId());
-        return;
-    }
-
-    if (playerChoiceData->GetExpireTime() && playerChoiceData->GetExpireTime() < GameTime::GetSystemTime())
-    {
-        TC_LOG_ERROR("entities.player.cheat", "Error in CMSG_CHOICE_RESPONSE: {} tried to respond to expired player choice {})",
-            GetPlayerInfo(), choiceResponse.ChoiceID);
-        return;
-    }
-
-    Optional<uint32> responseId = playerChoiceData->FindIdByClientIdentifier(choiceResponse.ResponseIdentifier);
-    if (!responseId)
-    {
-        TC_LOG_ERROR("entities.player.cheat", "Error in CMSG_CHOICE_RESPONSE: {} tried to select invalid player choice response identifier {}",
-            GetPlayerInfo(), choiceResponse.ResponseIdentifier);
-        return;
-    }
-
-    PlayerChoice const* playerChoice = sObjectMgr->GetPlayerChoice(choiceResponse.ChoiceID);
-    if (!playerChoice)
-        return;
-
-    PlayerChoiceResponse const* playerChoiceResponse = playerChoice->GetResponse(*responseId);
-    if (!playerChoiceResponse)
-    {
-        TC_LOG_ERROR("entities.player.cheat", "Error in CMSG_CHOICE_RESPONSE: {} tried to select invalid player choice response {}",
-            GetPlayerInfo(), *responseId);
-        return;
-    }
-
-    if (playerChoiceResponse->Flags.HasFlag(PlayerChoiceResponseFlags::DisabledButton | PlayerChoiceResponseFlags::DisabledOption | PlayerChoiceResponseFlags::HideButtonShowText))
-    {
-        TC_LOG_ERROR("entities.player.cheat", "Error in CMSG_CHOICE_RESPONSE: {} tried to select disabled player choice response {}",
-            GetPlayerInfo(), *responseId);
-        return;
-    }
-
-    sScriptMgr->OnPlayerChoiceResponse(ObjectAccessor::GetWorldObject(*_player, _player->PlayerTalkClass->GetInteractionData().SourceGuid), _player,
-        playerChoice, playerChoiceResponse, choiceResponse.ResponseIdentifier);
-}
-
-void WorldSession::HandleUiMapQuestLinesRequest(WorldPackets::Quest::UiMapQuestLinesRequest& uiMapQuestLinesRequest)
-{
-    UiMapEntry const* uiMap = sUiMapStore.LookupEntry(uiMapQuestLinesRequest.UiMapID);
-    if (!uiMap)
-        return;
-
-    WorldPackets::Quest::UiMapQuestLinesResponse response;
-    response.UiMapID = uiMap->ID;
-
-    if (std::vector<uint32> const* questLines = sObjectMgr->GetUiMapQuestLinesList(uiMap->ID))
-    {
-        for (uint32 questLineId : *questLines)
-        {
-            std::span<QuestLineXQuestEntry const* const> questLineQuests = QuestMgr::GetQuestsForQuestLine(questLineId);
-            if (questLineQuests.empty())
-                continue;
-
-            bool isQuestLineCompleted = true;
-            for (QuestLineXQuestEntry const* questLineQuest : questLineQuests)
-            {
-                if (Quest const* quest = sObjectMgr->GetQuestTemplate(questLineQuest->QuestID))
-                {
-                    if (_player->CanTakeQuest(quest, false))
-                        response.QuestLineXQuestIDs.push_back(questLineQuest->ID);
-
-                    if (isQuestLineCompleted && !_player->GetQuestRewardStatus(questLineQuest->QuestID))
-                        isQuestLineCompleted = false;
-                }
-            }
-
-            if (!isQuestLineCompleted)
-                response.QuestLineIDs.push_back(questLineId);
-        }
-    }
-
-    if (std::vector<uint32> const* quests = sObjectMgr->GetUiMapQuestsList(uiMap->ID))
-    {
-        for (uint32 questId : *quests)
-            if (Quest const* quest = sObjectMgr->GetQuestTemplate(questId))
-                if (_player->CanTakeQuest(quest, false))
-                    response.QuestIDs.push_back(questId);
-    }
 
     SendPacket(response.Write());
 }
