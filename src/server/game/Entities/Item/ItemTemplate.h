@@ -394,6 +394,20 @@ extern int32 const SocketColorToGemTypeMask[31];
 
 #define SOCKET_COLOR_STANDARD (SOCKET_COLOR_RED | SOCKET_COLOR_YELLOW | SOCKET_COLOR_BLUE)
 
+enum BagFamily
+{
+    BAG_FAMILY_NONE                             = 0,
+    BAG_FAMILY_ARROWS                           = 1,
+    BAG_FAMILY_BULLETS                          = 2,
+    BAG_FAMILY_SOUL_SHARDS                      = 3,
+    BAG_FAMILY_UNKNOWN1                         = 4,
+    BAG_FAMILY_UNKNOWN2                         = 5,
+    BAG_FAMILY_HERBS                            = 6,
+    BAG_FAMILY_ENCHANTING_SUPP                  = 7,
+    BAG_FAMILY_ENGINEERING_SUPP                 = 8,
+    BAG_FAMILY_KEYS                             = 9,
+};
+
 enum InventoryType : uint8
 {
     INVTYPE_NON_EQUIP                           = 0,
@@ -424,18 +438,12 @@ enum InventoryType : uint8
     INVTYPE_THROWN                              = 25,
     INVTYPE_RANGEDRIGHT                         = 26,
     INVTYPE_QUIVER                              = 27,
-    INVTYPE_RELIC                               = 28,
-    INVTYPE_PROFESSION_TOOL                     = 29,
-    INVTYPE_PROFESSION_GEAR                     = 30,
-    INVTYPE_EQUIPABLE_SPELL_OFFENSIVE           = 31,
-    INVTYPE_EQUIPABLE_SPELL_UTILITY             = 32,
-    INVTYPE_EQUIPABLE_SPELL_DEFENSIVE           = 33,
-    INVTYPE_EQUIPABLE_SPELL_MOBILITY            = 34
+    INVTYPE_RELIC                               = 28
 };
 
-#define MAX_INVTYPE                               35
+#define MAX_INVTYPE                               29
 
-constexpr std::array<InventoryType, 10> InventoryTypesEquipable =
+constexpr std::array<InventoryType, 9> InventoryTypesEquipable =
 {
     INVTYPE_WEAPON,
     INVTYPE_SHIELD,
@@ -446,7 +454,6 @@ constexpr std::array<InventoryType, 10> InventoryTypesEquipable =
     INVTYPE_HOLDABLE,
     INVTYPE_THROWN,
     INVTYPE_RANGEDRIGHT,
-    INVTYPE_PROFESSION_TOOL
 };
 
 enum ItemClass : uint8
@@ -834,6 +841,9 @@ enum ItemIdConstants
     ITEM_PURPLE_RIBBONED_HOLIDAY_GIFT            = 17308,   // Purple Ribboned Holiday Gift
     ITEM_EMPTY_WRAPPER                           = 21830,   // Empty Wrapper
     ITEM_WRAPPED_GIFT                            = 21831,   // Wrappered Gift
+
+    ITEM_ACCOUNT_BANK_TAB_BAG                    = 208392,  // Account Bank Tab Bag (DNT)
+    ITEM_CHARACTER_BANK_TAB_BAG                  = 242709,  // Character Bank Tab Bag (DNT)
 };
 
 class Player;
@@ -849,7 +859,7 @@ struct TC_GAME_API ItemTemplate
     uint32 GetSubClass() const { return BasicData->SubclassID; }
     ItemSheatheType GetSheatheType() const { return static_cast<ItemSheatheType>(BasicData->SheatheType); }
     uint32 GetQuality() const { return ExtendedData->OverallQualityID; }
-    uint32 GetOtherFactionItemId() const { return ExtendedData->OppositeFactionItemID; }
+    uint32 GetOtherFactionItemId() const { return ExtendedData->FactionRelated; }
     float GetPriceRandomValue() const { return ExtendedData->PriceRandomValue; }
     float GetPriceVariance() const { return ExtendedData->PriceVariance; }
     uint32 GetBuyCount() const { return std::max<uint32>(ExtendedData->VendorStackCount, 1u); }
@@ -875,7 +885,7 @@ struct TC_GAME_API ItemTemplate
     uint32 GetItemLevelOffsetCurveId() const { return ExtendedData->ItemLevelOffsetCurveID; }
     uint32 GetItemLevelOffsetItemLevel() const { return ExtendedData->ItemLevelOffsetItemLevel; }
     uint32 GetItemSquishEraId() const { return ExtendedData->ItemSquishEraID; }
-    uint32 GetDamageType() const { return ExtendedData->DamageType; }
+    uint32 GetDamageType() const { return ExtendedData->DamageDamageType; }
     uint32 GetDelay() const { return ExtendedData->ItemDelay; }
     float GetRangedModRange() const { return ExtendedData->ItemRange; }
     ItemBondingType GetBonding() const { return ItemBondingType(ExtendedData->Bonding); }
@@ -889,7 +899,7 @@ struct TC_GAME_API ItemTemplate
     uint32 GetBagFamily() const { return ExtendedData->BagFamily; }
     uint32 GetTotemCategory() const { return ExtendedData->TotemCategoryID; }
     SocketColor GetSocketColor(uint32 index) const { ASSERT(index < MAX_ITEM_PROTO_SOCKETS); return SocketColor(ExtendedData->SocketType[index]); }
-    uint32 GetSocketBonus() const { return ExtendedData->SocketMatchenchantmentID; }
+    uint32 GetSocketBonus() const { return ExtendedData->SocketMatchEnchantmentId; }
     uint32 GetGemProperties() const { return ExtendedData->GemProperties; }
     float GetQualityModifier() const { return ExtendedData->QualityModifier; }
     uint32 GetDuration() const { return ExtendedData->DurationInInventory; }

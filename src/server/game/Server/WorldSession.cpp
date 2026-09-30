@@ -1241,11 +1241,6 @@ SQLQueryHolderCallback& WorldSession::AddQueryHolderCallback(SQLQueryHolderCallb
     return _queryHolderProcessor.AddCallback(std::move(callback));
 }
 
-bool WorldSession::CanAccessAlliedRaces() const
-{
-    return GetAccountExpansion() >= EXPANSION_BATTLE_FOR_AZEROTH;
-}
-
 void WorldSession::LoadPermissions()
 {
     uint32 id = GetAccountId();

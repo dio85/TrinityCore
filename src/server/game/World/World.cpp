@@ -1203,8 +1203,13 @@ void World::LoadConfigSettings(bool reload)
     _gameRules =
     {
         { .Rule = ::GameRule::TransmogEnabled, .Value = true },
-        { .Rule = ::GameRule::HousingEnabled, .Value = true }
+        { .Rule = ::GameRule::HousingEnabled, .Value = false },
+        { .Rule = ::GameRule::EjJourneysDisabled, .Value = true }
     };
+
+    // Classic 1.60 Hardcore ruleset realm: C_GameRules.IsHardcoreActive() drives the client's Hardcore UI
+    if (sConfigMgr->GetBoolDefault("Classic.Hardcore", false))
+        _gameRules.push_back({ .Rule = ::GameRule::HardcoreRuleset, .Value = true });
 
     if (reload)
     {
@@ -1506,6 +1511,9 @@ bool World::SetInitialWorldSettings()
 
     TC_LOG_INFO("server.loading", "Loading Creature templates...");
     sObjectMgr->LoadCreatureTemplates();
+
+    TC_LOG_INFO("server.loading", "Loading Classic creature levels...");
+    sObjectMgr->LoadCreatureClassicLevels();
 
     TC_LOG_INFO("server.loading", "Loading Equipment templates...");           // must be after LoadCreatureTemplates
     sObjectMgr->LoadEquipmentTemplates();

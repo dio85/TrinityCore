@@ -17,6 +17,7 @@
 
 #include "RealmList.h"
 #include "BattlenetRpcErrorCodes.h"
+#include "Config.h"
 #include "CryptoRandom.h"
 #include "DatabaseEnv.h"
 #include "DeadlineTimer.h"
@@ -26,33 +27,35 @@
 #include "Resolver.h"
 #include "Util.h"
 #include "RealmList.pb.h"
+#include "StringConvert.h"
 #include "advstd.h"
 #include <boost/asio/ip/tcp.hpp>
+#include <charconv>
+#include <utility>
 #include <zlib.h>
 
 namespace
 {
-bool CompressJson(std::string const& json, std::vector<uint8>* compressed)
-{
-    uLong uncompressedLength = uLong(json.length() + 1);
-    uLong compressedLength = compressBound(uLong(json.length()));
-    compressed->resize(compressedLength + 4);
-    memcpy(compressed->data(), &uncompressedLength, sizeof(uncompressedLength));
-
-    if (compress(compressed->data() + 4, &compressedLength, reinterpret_cast<uint8 const*>(json.data()), uncompressedLength) != Z_OK)
+    bool CompressJson(std::string const& json, std::vector<uint8>* compressed)
     {
-        compressed->clear();
-        return false;
-    }
+        uLong uncompressedLength = uLong(json.length() + 1);
+        uLong compressedLength = compressBound(uLong(json.length()));
+        compressed->resize(compressedLength + 4);
+        memcpy(compressed->data(), &uncompressedLength, sizeof(uncompressedLength));
 
-    compressed->resize(compressedLength + 4);   // trim excess bytes
-    return true;
-}
+        if (compress(compressed->data() + 4, &compressedLength, reinterpret_cast<uint8 const*>(json.data()), uncompressedLength) != Z_OK)
+        {
+            compressed->clear();
+            return false;
+        }
+
+        compressed->resize(compressedLength + 4);   // trim excess bytes
+        return true;
+    }
 }
 
 RealmList::RealmList() : _updateInterval(0)
-{
-}
+{}
 
 RealmList::~RealmList() = default;
 
@@ -101,7 +104,7 @@ void RealmList::UpdateRealms()
 {
     TC_LOG_DEBUG("realmlist", "Updating Realm List...");
 
-    LoginDatabasePreparedStatement *stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_REALMLIST);
+    LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_SEL_REALMLIST);
     PreparedQueryResult result = LoginDatabase.Query(stmt);
 
     std::map<Battlenet::RealmHandle, std::string> existingRealms;
@@ -160,26 +163,26 @@ void RealmList::UpdateRealms()
 
             UpdateRealm(*newRealms.try_emplace(id, std::make_shared<Realm>()).first->second, id, build, name, std::move(addresses), port, icon,
                 flag, timezone, (allowedSecurityLevel <= SEC_ADMINISTRATOR ? AccountTypes(allowedSecurityLevel) : SEC_ADMINISTRATOR), pop);
+            newRealms[id]->ContentSetId = fields[15].GetUInt32();
 
             newSubRegions.insert(Battlenet::RealmHandle{ region, battlegroup, 0 }.GetAddressString());
 
             auto buildAddressesLogText = [&]
-            {
-                std::string text;
-                for (boost::asio::ip::address const& address : newRealms[id]->Addresses)
                 {
-                    text += address.to_string();
-                    text += ' ';
-                }
-                return text;
-            };
+                    std::string text;
+                    for (boost::asio::ip::address const& address : newRealms[id]->Addresses)
+                    {
+                        text += address.to_string();
+                        text += ' ';
+                    }
+                    return text;
+                };
 
             if (!existingRealms.erase(id))
                 TC_LOG_INFO("realmlist", "Added realm \"{}\" at {}(port {}).", name, buildAddressesLogText(), port);
             else
                 TC_LOG_DEBUG("realmlist", "Updating realm \"{}\" at {}(port {}).", name, buildAddressesLogText(), port);
-        }
-        while (result->NextRow());
+        } while (result->NextRow());
     }
 
     for (auto itr = existingRealms.begin(); itr != existingRealms.end(); ++itr)
@@ -201,12 +204,12 @@ void RealmList::UpdateRealms()
     {
         _updateTimer->expires_after(std::chrono::seconds(_updateInterval));
         _updateTimer->async_wait([this](boost::system::error_code const& error)
-        {
-            if (error)
-                return;
+            {
+                if (error)
+                    return;
 
-            UpdateRealms();
-        });
+                UpdateRealms();
+            });
     }
 }
 
@@ -237,6 +240,89 @@ std::vector<std::string> RealmList::GetSubRegions() const
 {
     std::shared_lock lock(_realmsMutex);
     return { _subRegions.begin(), _subRegions.end() };
+}
+
+Optional<Battlenet::RealmHandle> RealmList::GetFirstRealmId() const
+{
+    std::shared_lock lock(_realmsMutex);
+    if (_realms.empty())
+        return {};
+
+    return _realms.begin()->first;
+}
+
+// Classic (1.60+) JamJSONRealmEntry has a superDistrictID (Cfg_SuperDistrict, the realm's ruleset) after cfgContentSetID, which
+// TrinityCore's RealmList.proto does not have. The client uses it as the player's super district, e.g. Legacy Points
+// (TraitCurrencySource.SuperDistrictSetID) only count on PvP/Normal/Roleplay; with no value every source gives 0.
+static std::string AddClassicRealmEntryFields(std::string json)
+{
+    constexpr std::string_view key = R"("cfgContentSetID":)";
+    for (std::size_t pos = json.find(key); pos != std::string::npos; pos = json.find(key, pos))
+    {
+        std::size_t start = pos + key.size();
+        std::size_t end = json.find_first_not_of("0123456789", start);
+        if (end == std::string::npos)
+            break;
+
+        // the ruleset follows from the realm's season (realmlist.contentSetId)
+        uint32 superDistrictId = GetClassicSuperDistrictForContentSet(Trinity::StringTo<uint32>(std::string_view(json).substr(start, end - start)).value_or(0));
+        if (!superDistrictId)
+            superDistrictId = sConfigMgr->GetIntDefault("Realm.SuperDistrictID", 2);
+
+        std::string const superDistrict = Trinity::StringFormat(R"(,"superDistrictID":{})", superDistrictId);
+        json.insert(end, superDistrict);
+        pos = end + superDistrict.size();
+    }
+    return json;
+}
+
+Optional<Battlenet::RealmHandle> RealmList::GetRealmIdForContentSet(uint32 contentSetId) const
+{
+    std::shared_lock lock(_realmsMutex);
+    for (auto const& [id, realm] : _realms)
+        if (realm->ContentSetId == contentSetId && realm->PopulationLevel != RealmPopulationState::Offline)
+            return id;
+
+    return {};
+}
+
+uint32 RealmList::GetCurrentRealmSuperDistrict() const
+{
+    uint32 contentSetId = 0;
+    if (std::shared_ptr<Realm const> realm = GetCurrentRealm())
+        contentSetId = realm->ContentSetId;
+    if (!contentSetId)
+        contentSetId = sConfigMgr->GetIntDefault("Realm.CfgContentSetID", 137);
+
+    if (uint32 superDistrictId = GetClassicSuperDistrictForContentSet(contentSetId))
+        return superDistrictId;
+
+    return sConfigMgr->GetIntDefault("Realm.SuperDistrictID", 2);
+}
+
+std::string RealmList::GetClassicSuperDistrictListEntries() const
+{
+    std::string entries, allEntries;
+    for (uint32 superDistrictId = 1; superDistrictId <= 5; ++superDistrictId)
+    {
+        std::string entry = Trinity::StringFormat(R"({{"superDistrictID":{},"disallowLogin":false,"holdDownUntilTime":0}})", superDistrictId);
+        allEntries += (allEntries.empty() ? "" : ",") + entry;
+
+        // only offer rulesets with a realm, like the real Classic realm list
+        if (uint32 contentSetId = GetClassicContentSetForSuperDistrict(superDistrictId))
+            if (GetRealmIdForContentSet(contentSetId))
+                entries += (entries.empty() ? "" : ",") + entry;
+    }
+    return entries.empty() ? allEntries : entries;
+}
+
+uint32 RealmList::GetCurrentRealmContentSet() const
+{
+    if (std::shared_ptr<Realm const> realm = GetCurrentRealm())
+        if (realm->ContentSetId)
+            return realm->ContentSetId;
+
+    return sConfigMgr->GetIntDefault("Realm.CfgContentSetID", 137);
 }
 
 void RealmList::FillRealmEntry(Realm const& realm, uint32 clientBuild, AccountTypes accountSecurityLevel, JSON::RealmList::RealmEntry* realmEntry) const
@@ -270,14 +356,69 @@ void RealmList::FillRealmEntry(Realm const& realm, uint32 clientBuild, AccountTy
     if (realm.Build != clientBuild)
         flag |= RealmFlags::VersionMismatch;
 
+
     realmEntry->set_cfgrealmsid(realm.Id.Realm);
     realmEntry->set_flags(AsUnderlyingType(flag));
     realmEntry->set_name(realm.Name);
     realmEntry->set_cfgconfigsid(realm.GetConfigId());
     realmEntry->set_cfglanguagesid(1);
-    realmEntry->set_cfgcontentsetid(0);
+    realmEntry->set_cfgcontentsetid(realm.ContentSetId ? realm.ContentSetId : sConfigMgr->GetIntDefault("Realm.CfgContentSetID", 0));
     realmEntry->set_usebleepchance(0.0f);
 }
+
+// LuaSol: newer clients key their realm cache by virtualRealmAddress and match
+// super districts by cfgContentSetID/superDistrictID ? fields our RealmEntry
+// proto predates ? so inject them into serialized realm list JSON. The district
+// identity follows the realm's own type (GameType), not the request filter.
+namespace
+{
+    // (cfgContentSetID, superDistrictID) per realm type ? client Cfg_SuperDistrict.db2, build 1.60.1.70009
+    std::pair<uint32, uint32> DistrictIdsForRealmType(uint8 type)
+    {
+        switch (type)
+        {
+        case REALM_TYPE_PVP:                    return { 136, 1 };
+        case REALM_TYPE_RP:
+        case REALM_TYPE_RPPVP:                  return { 138, 3 };
+        case REALM_TYPE_FFA_PVP:                return { 140, 4 };   // hardcore
+        default:                                return { 137, 2 };
+        }
+    }
+
+    void InjectRealmEntryExtensions(std::string& json, uint32 realmAddress, uint8 realmType)
+    {
+        if (json.empty() || json.back() != '}')
+            return;
+
+        auto [contentSetId, superDistrictId] = DistrictIdsForRealmType(realmType);
+        json.insert(json.size() - 1, ",\"virtualRealmAddress\":" + std::to_string(realmAddress)
+            + ",\"cfgContentSetID\":" + std::to_string(contentSetId)
+            + ",\"superDistrictID\":" + std::to_string(superDistrictId));
+    }
+
+    void InjectExtensionsIntoUpdates(std::string& json, std::vector<Realm const*> const& realms)
+    {
+        constexpr std::string_view UpdatePrefix = "\"update\":{";
+        constexpr std::string_view AddrKey = "\"wowRealmAddress\":";
+
+        std::size_t realmIndex = 0;
+        for (std::string::size_type pos = 0; (pos = json.find(UpdatePrefix, pos)) != std::string::npos && realmIndex < realms.size(); pos += UpdatePrefix.size(), ++realmIndex)
+        {
+            std::string::size_type addrPos = json.rfind(AddrKey, pos);
+            if (addrPos == std::string::npos)
+                break;
+
+            uint64 addr = 0;
+            std::from_chars(json.data() + addrPos + AddrKey.size(), json.data() + pos, addr);
+
+            auto [contentSetId, superDistrictId] = DistrictIdsForRealmType(realms[realmIndex]->Type);
+            json.insert(pos + UpdatePrefix.size(), "\"virtualRealmAddress\":" + std::to_string(addr)
+                + ",\"cfgContentSetID\":" + std::to_string(contentSetId)
+                + ",\"superDistrictID\":" + std::to_string(superDistrictId) + ",");
+        }
+    }
+}
+// LuaSol: end
 
 std::string RealmList::GetRealmEntryJSON(Battlenet::RealmHandle const& id, uint32 build, AccountTypes accountSecurityLevel) const
 {
@@ -287,16 +428,122 @@ std::string RealmList::GetRealmEntryJSON(Battlenet::RealmHandle const& id, uint3
         {
             JSON::RealmList::RealmEntry realmEntry;
             FillRealmEntry(*realm, build, accountSecurityLevel, &realmEntry);
-            return JSON::Serialize(realmEntry);
+            std::string json = JSON::Serialize(realmEntry);
+            InjectRealmEntryExtensions(json, realm->Id.GetAddress(), realm->Type);   // LuaSol
+            return json;
         }
     }
 
     return { };
 }
 
+// LuaSol: realm entry JSON for the first usable realm matching subRegion
+// (exact "region-site-realm" address, then "region-site-0" subregion, then any
+// usable realm as fallback). Newer realmless clients take their join target
+// from this entry in the LastCharPlayed response instead of the realm list.
+std::string RealmList::GetRealmEntryForSubRegionJSON(std::string_view subRegion, uint32 build, AccountTypes accountSecurityLevel) const
+{
+    std::shared_ptr<Realm const> fallback;
+    std::shared_ptr<Realm const> offlineFallback;
+    {
+        std::shared_lock lock(_realmsMutex);
+        for (auto const& [_, realm] : _realms)
+        {
+            if (realm->Build != build || accountSecurityLevel < realm->AllowedSecurityLevel)
+                continue;
+
+            bool matches = realm->Id.GetSubRegionAddress() == subRegion || realm->Id.GetAddressString() == subRegion;
+
+            // LuaSol: keep an offline realm as last resort ? omitting
+            // Param_RealmEntry entirely makes the client fail the whole
+            // LastCharPlayed response with NO_AVAILABLE_REALMS (309), while a
+            // populated entry still reports populationState=Offline
+            if (realm->PopulationLevel == RealmPopulationState::Offline)
+            {
+                if (!offlineFallback || matches)
+                    offlineFallback = realm;
+                continue;
+            }
+
+            if (!fallback)
+                fallback = realm;
+
+            if (matches)
+            {
+                fallback = realm;
+                break;
+            }
+        }
+    }
+
+    if (!fallback)
+        fallback = offlineFallback;
+
+    if (!fallback)
+        return { };
+
+    JSON::RealmList::RealmEntry realmEntry;
+    FillRealmEntry(*fallback, build, accountSecurityLevel, &realmEntry);
+    std::string json = JSON::Serialize(realmEntry);
+    InjectRealmEntryExtensions(json, fallback->Id.GetAddress(), fallback->Type);
+    return json;
+}
+// LuaSol: end
+
+// LuaSol: serialized RealmListUpdates (uncompressed JSON body) for every realm
+// matching subRegion ? falls back to listing all realms when the requested
+// subregion matches nothing (realmless clients send subregion ids that do not
+// map back to realm handles). Like GetRealmList, does not filter by
+// build/security ? the client decides visibility.
+std::string RealmList::GetRealmListUpdatesForSubRegionJSON(std::string_view subRegion, uint32 build, AccountTypes accountSecurityLevel) const
+{
+    JSON::RealmList::RealmListUpdates realmList;
+    std::vector<Realm const*> listedRealms;
+    {
+        std::shared_lock lock(_realmsMutex);
+        bool hasMatch = false;
+        for (auto const& [_, realm] : _realms)
+        {
+            if (realm->Id.GetSubRegionAddress() == subRegion || realm->Id.GetAddressString() == subRegion)
+            {
+                hasMatch = true;
+                break;
+            }
+        }
+
+        for (auto const& [_, realm] : _realms)
+        {
+            if (hasMatch && realm->Id.GetSubRegionAddress() != subRegion && realm->Id.GetAddressString() != subRegion)
+                continue;
+
+            JSON::RealmList::RealmListUpdatePart* state = realmList.add_updates();
+            state->set_wowrealmaddress(realm->Id.GetAddress());
+            FillRealmEntry(*realm, build, accountSecurityLevel, state->mutable_update());
+            state->set_deleting(false);
+            listedRealms.push_back(realm.get());
+        }
+    }
+
+    std::string json = JSON::Serialize(realmList);
+    InjectExtensionsIntoUpdates(json, listedRealms);
+    return json;
+}
+
+// LuaSol: gameplay-mode districts this server offers, derived from realm types
+std::unordered_set<uint32> RealmList::GetSuperDistrictIds() const
+{
+    std::unordered_set<uint32> ids;
+    std::shared_lock lock(_realmsMutex);
+    for (auto const& [_, realm] : _realms)
+        ids.insert(DistrictIdsForRealmType(realm->Type).second);
+    return ids;
+}
+// LuaSol: end
+
 std::vector<uint8> RealmList::GetRealmList(uint32 build, AccountTypes accountSecurityLevel, std::string const& subRegion) const
 {
     JSON::RealmList::RealmListUpdates realmList;
+    std::vector<Realm const*> listedRealms;   // LuaSol
     {
         std::shared_lock lock(_realmsMutex);
         for (auto const& [_, realm] : _realms)
@@ -305,8 +552,10 @@ std::vector<uint8> RealmList::GetRealmList(uint32 build, AccountTypes accountSec
                 continue;
 
             JSON::RealmList::RealmListUpdatePart* state = realmList.add_updates();
+            state->set_wowrealmaddress(realm->Id.GetAddress());   // LuaSol: required part-level address
             FillRealmEntry(*realm, build, accountSecurityLevel, state->mutable_update());
             state->set_deleting(false);
+            listedRealms.push_back(realm.get());   // LuaSol
         }
 
         for (auto const& [id, _] : _removedRealms)
@@ -320,7 +569,9 @@ std::vector<uint8> RealmList::GetRealmList(uint32 build, AccountTypes accountSec
         }
     }
 
-    std::string json = "JSONRealmListUpdates:" + JSON::Serialize(realmList);
+    std::string updatesJson = JSON::Serialize(realmList);
+    InjectExtensionsIntoUpdates(updatesJson, listedRealms);   // LuaSol
+    std::string json = "JSONRealmListUpdates:" + updatesJson;
     std::vector<uint8> compressed;
     CompressJson(json, &compressed);
     return compressed;

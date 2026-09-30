@@ -155,6 +155,8 @@ struct TC_SHARED_API Realm
     uint8 Timezone;
     AccountTypes AllowedSecurityLevel;
     RealmPopulationState PopulationLevel;
+    uint32 superdistrictId = 0;    // Classic (1.60+): season of the realm's ruleset (realmlist.superdistrictId), see GetClassicContentSetForSuperDistrict
+    uint32 ContentSetId = 0;
 
     void SetName(std::string name);
 
@@ -162,6 +164,12 @@ struct TC_SHARED_API Realm
     uint32 GetConfigId() const;
 
     static uint32 const ConfigIdByType[MAX_CLIENT_REALM_TYPE];
+
+    // Classic (1.60+) rulesets: Cfg_SuperDistrict ID for a realm season (Cfg_SuperDistrict.ContentSetID):
+    // 136 -> 1 PvP, 137 -> 2 Normal, 138 -> 3 Roleplay, 140 -> 4 Hardcore; 0 if unknown
 };
+
+TC_SHARED_API uint32 GetClassicSuperDistrictForContentSet(uint32 contentSetId);
+TC_SHARED_API uint32 GetClassicContentSetForSuperDistrict(uint32 superDistrictId);
 
 #endif // Realm_h__

@@ -504,6 +504,17 @@ void WorldSession::HandleCharEnum(CharacterDatabaseQueryHolder const& holder)
 
     SendPacket(charEnum.Write());
 
+    // Classic 1.60.1.70009: character select keeps the enum result pending (never shows the characters) until it receives
+    // Classic opcode 0x460362 (retail numbering: SMSG_RECENT_ALLY_DATA_RESPONSE), whose handler (rva 0x24F1E50) releases it.
+    // Layout: uint32, uint8 (handler only uses the list when this is 7), uint32 count, entries - send it empty.
+    {
+        WorldPacket release(SMSG_RECENT_ALLY_DATA_RESPONSE, 9);
+        release << uint32(0);
+        release << uint8(0);
+        release << uint32(0);
+        SendPacket(&release, true);
+    }
+
     if (!charEnum.IsDeletedCharacters)
         _collectionMgr->SendWarbandSceneCollectionData();
 }
@@ -713,14 +724,6 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
         SendCharCreate(CHAR_CREATE_EXPANSION);
         return;
     }
-
-    //if (raceExpansionRequirement->AchievementId && !)
-    //{
-    //    TC_LOG_ERROR("entities.player.cheat", "Expansion {} account:[{}] tried to Create character without achievement {} race ({})",
-    //        GetAccountExpansion(), GetAccountId(), raceExpansionRequirement->AchievementId, charCreate.CreateInfo->Race);
-    //    SendCharCreate(CHAR_CREATE_ALLIED_RACE_ACHIEVEMENT);
-    //    return;
-    //}
 
     // prevent character creating Expansion class without Expansion account
     if (ClassAvailability const* raceClassExpansionRequirement = sObjectMgr->GetClassExpansionRequirement(charCreate.CreateInfo->Race, charCreate.CreateInfo->Class))
@@ -1004,13 +1007,24 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
             newChar->SaveToDB(trans, characterTransaction, true);
             createInfo->CharCount += 1;
 
+            // Classic 1.60: surname chosen in character creation ("Name Surname"), up to 48 characters
+            std::string surname = createInfo->Surname;
+            if (utf8length(surname) > 48)
+                surname.clear();
+            if (!surname.empty())
+            {
+                std::string escapedSurname = surname;
+                CharacterDatabase.EscapeString(escapedSurname);
+                characterTransaction->Append(Trinity::StringFormat("UPDATE characters SET surname = '{}' WHERE guid = {}", escapedSurname, newChar->GetGUID().GetCounter()).c_str());
+            }
+
             LoginDatabasePreparedStatement* stmt = LoginDatabase.GetPreparedStatement(LOGIN_REP_REALM_CHARACTERS);
             stmt->setUInt32(0, createInfo->CharCount);
             stmt->setUInt32(1, GetAccountId());
             stmt->setUInt32(2, sRealmList->GetCurrentRealmId().Realm);
             trans->Append(stmt);
 
-            AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(characterTransaction)).AfterComplete([this, newChar = std::move(newChar), trans](bool success)
+            AddTransactionCallback(CharacterDatabase.AsyncCommitTransaction(characterTransaction)).AfterComplete([this, newChar = std::move(newChar), trans, surname](bool success)
             {
                 if (success)
                 {
@@ -1019,6 +1033,7 @@ void WorldSession::HandleCharCreateOpcode(WorldPackets::Character::CreateCharact
                     TC_LOG_INFO("entities.player.character", "Account: {} (IP: {}) Create Character: {} {}", GetAccountId(), GetRemoteAddress(), newChar->GetName(), newChar->GetGUID().ToString());
                     sScriptMgr->OnPlayerCreate(newChar.get());
                     sCharacterCache->AddCharacterCacheEntry(newChar->GetGUID(), GetAccountId(), newChar->GetName(), newChar->GetNativeGender(), newChar->GetRace(), newChar->GetClass(), newChar->GetLevel(), false);
+                    sCharacterCache->UpdateCharacterSurname(newChar->GetGUID(), surname);
 
                     SendCharCreate(CHAR_CREATE_SUCCESS, newChar->GetGUID());
                 }
@@ -1297,6 +1312,14 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
             chH.PSendSysMessage("%s", sWorld->GetNewCharString().c_str());
     }
 
+    // Classic 1.60.1.70009: start positions imported from client recordings have no height (-15000); use the ground below
+    if (pCurrChar->GetPositionZ() <= -14999.0f)
+    {
+        float z = pCurrChar->GetMap()->GetClassicSpawnHeight(pCurrChar->GetPhaseShift(), pCurrChar->GetPositionX(), pCurrChar->GetPositionY());
+        if (z > INVALID_HEIGHT)
+            pCurrChar->Relocate(pCurrChar->GetPositionX(), pCurrChar->GetPositionY(), z + 0.5f, pCurrChar->GetOrientation());
+    }
+
     if (!pCurrChar->GetMap()->AddPlayerToMap(pCurrChar))
     {
         if (AreaTriggerTeleport const* at = sObjectMgr->GetGoBackTrigger(pCurrChar->GetMapId()))
@@ -1323,6 +1346,9 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder const& holder)
     pCurrChar->RemoveAurasWithInterruptFlags(SpellAuraInterruptFlags::Login);
 
     pCurrChar->SendInitialPacketsAfterAddToMap();
+
+    // Classic 1.60: characters that were already level 25+ get the Legacy unlock on login
+    pCurrChar->UpdateClassicLegacyUnlock();
 
     CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_UPD_CHAR_ONLINE);
     stmt->setUInt64(0, pCurrChar->GetGUID().GetCounter());
@@ -1529,6 +1555,7 @@ void WorldSession::SendFeatureSystemStatus()
     features.CfgRealmRecID = sRealmList->GetCurrentRealmId().Realm;
     features.CommercePricePollTimeSeconds = 300;
     features.VoiceEnabled = false;
+    features.ContentSetID = int32(sRealmList->GetCurrentRealmContentSet());
 
     // Enable guilds only.
     // This is required to restore old guild channel behavior for GMs.

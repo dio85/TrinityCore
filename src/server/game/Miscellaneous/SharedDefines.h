@@ -88,52 +88,19 @@ enum Expansions
 {
     EXPANSION_LEVEL_CURRENT            = -1,
     EXPANSION_CLASSIC                  = 0,
-    EXPANSION_THE_BURNING_CRUSADE      = 1,
-    EXPANSION_WRATH_OF_THE_LICH_KING   = 2,
-    EXPANSION_CATACLYSM                = 3,
-    EXPANSION_MISTS_OF_PANDARIA        = 4,
-    EXPANSION_WARLORDS_OF_DRAENOR      = 5,
-    EXPANSION_LEGION                   = 6,
-    EXPANSION_BATTLE_FOR_AZEROTH       = 7,
-    EXPANSION_SHADOWLANDS              = 8,
-    EXPANSION_DRAGONFLIGHT             = 9,
-    EXPANSION_THE_WAR_WITHIN           = 10,
-    EXPANSION_MIDNIGHT                 = 11,
     MAX_EXPANSIONS,
 
     MAX_ACCOUNT_EXPANSIONS
 };
 
-#define CURRENT_EXPANSION EXPANSION_MIDNIGHT
+#define CURRENT_EXPANSION EXPANSION_CLASSIC
 
 constexpr uint32 GetMaxLevelForExpansion(uint32 expansion)
 {
     switch (expansion)
     {
         case EXPANSION_CLASSIC:
-            return 30;
-        case EXPANSION_THE_BURNING_CRUSADE:
-            return 30;
-        case EXPANSION_WRATH_OF_THE_LICH_KING:
-            return 30;
-        case EXPANSION_CATACLYSM:
-            return 35;
-        case EXPANSION_MISTS_OF_PANDARIA:
-            return 35;
-        case EXPANSION_WARLORDS_OF_DRAENOR:
-            return 40;
-        case EXPANSION_LEGION:
-            return 45;
-        case EXPANSION_BATTLE_FOR_AZEROTH:
-            return 50;
-        case EXPANSION_SHADOWLANDS:
             return 60;
-        case EXPANSION_DRAGONFLIGHT:
-            return 70;
-        case EXPANSION_THE_WAR_WITHIN:
-            return 80;
-        case EXPANSION_MIDNIGHT:
-            return 90;
         default:
             break;
     }

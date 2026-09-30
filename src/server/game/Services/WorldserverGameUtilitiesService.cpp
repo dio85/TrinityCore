@@ -23,221 +23,325 @@
 #include "ProtobufJSON.h"
 #include "RealmList.h"
 #include "RealmList.pb.h"
+#include "StringFormat.h"   // LuaSol
 #include "Types.h"
+#include <unordered_set>   // LuaSol
 #include <zlib.h>
 
 namespace Battlenet::Services
 {
-namespace Shared
-{
-std::string_view GameUtilities::ParseParamName(std::string_view command)
-{
-    if (command.starts_with("Command_"sv))
+    namespace Shared
     {
-        size_t pos = command.rfind('_');
-        if (pos != std::string_view::npos)
-            command.remove_suffix(command.length() - pos);
-    }
+        std::string_view GameUtilities::ParseParamName(std::string_view command)
+        {
+            if (command.starts_with("Command_"sv))
+            {
+                size_t pos = command.rfind('_');
+                if (pos != std::string_view::npos)
+                    command.remove_suffix(command.length() - pos);
+            }
 
-    return command;
-}
+            return command;
+        }
 
-Variant* GameUtilities::FindParamValue(std::vector<std::pair<std::string_view, Variant>>& params, std::string_view paramName)
-{
-    auto itr = std::ranges::find(params, paramName, Trinity::Containers::MapKey);
-    return itr != params.end() ? &itr->second : nullptr;
-}
+        Variant* GameUtilities::FindParamValue(std::vector<std::pair<std::string_view, Variant>>& params, std::string_view paramName)
+        {
+            auto itr = std::ranges::find(params, paramName, Trinity::Containers::MapKey);
+            return itr != params.end() ? &itr->second : nullptr;
+        }
 
-uint32 GameUtilities::HandleClientRequest(WorldSession const* session,
-    std::vector<std::pair<std::string_view, Variant>>& params,
-    std::vector<std::pair<std::string_view, Variant>>& responseValues)
-{
-    auto command = std::ranges::find_if(params,
-        [](std::string_view paramName) { return paramName.starts_with("Command_"sv); },
-        Trinity::Containers::MapKey);
+        uint32 GameUtilities::HandleClientRequest(WorldSession const* session,
+            std::vector<std::pair<std::string_view, Variant>>& params,
+            std::vector<std::pair<std::string_view, Variant>>& responseValues)
+        {
+            auto command = std::ranges::find_if(params,
+                [](std::string_view paramName) { return paramName.starts_with("Command_"sv); },
+                Trinity::Containers::MapKey);
 
-    if (command == params.end())
-    {
-        TC_LOG_ERROR("session.rpc", "{} sent ClientRequest with no command.", session->GetPlayerInfo());
-        return ERROR_RPC_MALFORMED_REQUEST;
-    }
+            if (command == params.end())
+            {
+                TC_LOG_ERROR("session.rpc", "{} sent ClientRequest with no command.", session->GetPlayerInfo());
+                return ERROR_RPC_MALFORMED_REQUEST;
+            }
 
-    switch (Trinity::HashFnv1a<>::GetHash(command->first))
-    {
-        case Trinity::HashFnv1a<>::GetHash("Command_RealmListRequest_v1"sv):
-            return GetRealmList(session, params, responseValues);
-        case Trinity::HashFnv1a<>::GetHash("Command_RealmJoinRequest_v1"sv):
-            return JoinRealm(session, params, responseValues);
-        default:
-            break;
-    }
+            // LuaSol: log the command name and all params so we can follow the login flow
+            {
+                std::string paramLog;
+                for (auto const& [name, value] : params)
+                {
+                    paramLog += name;
+                    paramLog += '=';
+                    std::visit([&paramLog](auto const& v)
+                        {
+                            using T = std::decay_t<decltype(v)>;
+                            if constexpr (std::is_same_v<T, std::vector<uint8>>)
+                                paramLog += Trinity::StringFormat("<{} bytes>", v.size());
+                            else if constexpr (std::is_same_v<T, std::string>)
+                                paramLog += v;
+                            else if constexpr (std::is_same_v<T, bool>)
+                                paramLog += v ? "true" : "false";
+                            else
+                                paramLog += std::to_string(v);
+                        }, value);
+                    paramLog += ' ';
+                }
+                TC_LOG_INFO("session.rpc", "{} ClientRequest: {} params: {}", session->GetPlayerInfo(), command->first, paramLog);
+            }
+            // LuaSol: end
 
-    TC_LOG_ERROR("session.rpc", "{} sent ClientRequest with unknown command {}.", session->GetPlayerInfo(), command->first);
-    return ERROR_RPC_NOT_IMPLEMENTED;
-}
+            switch (Trinity::HashFnv1a<>::GetHash(command->first))
+            {
+            case Trinity::HashFnv1a<>::GetHash("Command_RealmListRequest_v1"sv):
+                return GetRealmList(session, params, responseValues);
+            case Trinity::HashFnv1a<>::GetHash("Command_RealmJoinRequest_v1"sv):
+                return JoinRealm(session, params, responseValues);
+                // LuaSol: newer clients request the super district list; answer with a valid dummy
+            case Trinity::HashFnv1a<>::GetHash("Command_SuperDistrictListRequest_v1"sv):
+                return GetSuperDistrictList(session, params, responseValues);
+            case Trinity::HashFnv1a<>::GetHash("Command_LastCharPlayedRequest_v1"sv):
+                return GetLastCharPlayed(session, params, responseValues);
+            default:
+                break;
+            }
 
-uint32 GameUtilities::HandleGetAllValuesForAttribute(WorldSession const* session, std::string_view command, std::vector<Variant>& responseValues)
-{
-    switch (Trinity::HashFnv1a<>::GetHash(command))
-    {
-        case Trinity::HashFnv1a<>::GetHash("Command_RealmListRequest_v1"sv):
-            for (std::string& subRegion : sRealmList->GetSubRegions())
-                responseValues.emplace_back(std::move(subRegion));
+            TC_LOG_ERROR("session.rpc", "{} sent ClientRequest with unknown command {}.", session->GetPlayerInfo(), command->first);
+            return ERROR_RPC_NOT_IMPLEMENTED;
+        }
+
+        uint32 GameUtilities::HandleGetAllValuesForAttribute(WorldSession const* session, std::string_view command, std::vector<Variant>& responseValues)
+        {
+            TC_LOG_INFO("session.rpc", "{} GetAllValuesForAttribute: {}", session->GetPlayerInfo(), command);   // LuaSol
+
+            switch (Trinity::HashFnv1a<>::GetHash(command))
+            {
+            case Trinity::HashFnv1a<>::GetHash("Command_RealmListRequest_v1"sv):
+            case Trinity::HashFnv1a<>::GetHash("Command_SuperDistrictListRequest_v1"sv):    // LuaSol
+                for (std::string& subRegion : sRealmList->GetSubRegions())
+                    responseValues.emplace_back(std::move(subRegion));
+                return ERROR_OK;
+            default:
+                break;
+            }
+
+            TC_LOG_ERROR("session.rpc", "{} sent GetAllValuesForAttributeRequest with unknown command {}.", session->GetPlayerInfo(), command);
+            return ERROR_RPC_NOT_IMPLEMENTED;
+        }
+
+        uint32 GameUtilities::GetRealmList(WorldSession const* session,
+            std::vector<std::pair<std::string_view, Variant>>& params,
+            std::vector<std::pair<std::string_view, Variant>>& responseValues)
+        {
+            std::string subRegionId;
+            if (Variant const* subRegion = FindParamValue(params, "Command_RealmListRequest_v1"); subRegion && std::holds_alternative<std::string>(*subRegion))
+                subRegionId = std::get<std::string>(*subRegion);
+
+            std::vector<uint8> realmListJson = sRealmList->GetRealmList(session->GetClientBuild(), session->GetSecurity(), subRegionId);
+
+            if (realmListJson.empty())
+                return ERROR_UTIL_SERVER_FAILED_TO_SERIALIZE_RESPONSE;
+
+            ::JSON::RealmList::RealmCharacterCountList realmCharacterCounts;
+            for (auto const& [realmAddress, count] : session->GetRealmCharacterCounts())
+            {
+                ::JSON::RealmList::RealmCharacterCountEntry* countEntry = realmCharacterCounts.add_counts();
+                countEntry->set_wowrealmaddress(realmAddress);
+                countEntry->set_count(count);
+            }
+
+            std::string json = "JSONRealmCharacterCountList:" + ::JSON::Serialize(realmCharacterCounts);
+
+            uLongf compressedLength = compressBound(json.length());
+            std::vector<uint8> characterCountsJson(4 + compressedLength);
+            *reinterpret_cast<uint32*>(characterCountsJson.data()) = json.length() + 1;
+
+            if (compress(characterCountsJson.data() + 4, &compressedLength, reinterpret_cast<uint8 const*>(json.c_str()), json.length() + 1) != Z_OK)
+                return ERROR_UTIL_SERVER_FAILED_TO_SERIALIZE_RESPONSE;
+
+            responseValues.emplace_back("Param_RealmList"sv, std::move(realmListJson));
+            responseValues.emplace_back("Param_CharacterCountList"sv, std::move(characterCountsJson));
+
             return ERROR_OK;
-        default:
-            break;
+        }
+
+        static std::vector<uint8> CompressClassicJson(std::string const& json)
+        {
+            uLongf compressedLength = compressBound(json.length() + 1);
+            std::vector<uint8> compressed(4 + compressedLength);
+            *reinterpret_cast<uint32*>(compressed.data()) = json.length() + 1;
+
+            if (compress(compressed.data() + 4, &compressedLength, reinterpret_cast<uint8 const*>(json.c_str()), json.length() + 1) != Z_OK)
+                return {};
+
+            compressed.resize(compressedLength + 4);
+            return compressed;
+        }
+
+        // Classic (1.60+) clients pick the realm for the selected super district with Param_ContentSetIDFilter; answer with our realm.
+        // The client requires Param_LastPlayedTime right after Param_RealmEntry.
+        uint32 GameUtilities::GetLastCharPlayed(WorldSession const* session,
+            std::vector<std::pair<std::string_view, Variant>>& params,
+            std::vector<std::pair<std::string_view, Variant>>& responseValues)
+        {
+            Variant const* contentSetFilter = FindParamValue(params, "Param_ContentSetIDFilter");
+            int64 contentSetId = contentSetFilter ? std::visit([]<typename T>(T const& v) -> int64
+            {
+                if constexpr (std::is_arithmetic_v<T>)
+                    return int64(v);
+                else
+                    return -1;
+            }, * contentSetFilter) : -1;
+
+            Optional<Battlenet::RealmHandle> realmId = contentSetId >= 0 ? sRealmList->GetRealmIdForContentSet(uint32(contentSetId)) : Optional<Battlenet::RealmHandle>();
+            if (!realmId)
+                realmId = sRealmList->GetFirstRealmId();   // no realm for that ruleset: fall back to the first one
+            if (contentSetId < 0 || !realmId)
+                return ERROR_OK;
+
+            std::string realmEntryJson = sRealmList->GetRealmEntryJSON(*realmId, session->GetClientBuild(), session->GetSecurity());
+            if (realmEntryJson.empty())
+                return ERROR_OK;
+
+            ::JSON::RealmList::UtilityInfo utilityInfo;
+            utilityInfo.set_realmpermissions(0x200);
+
+            responseValues.emplace_back("Param_RealmEntry"sv, CompressClassicJson("JamJSONRealmEntry:" + realmEntryJson));
+            responseValues.emplace_back("Param_LastPlayedTime"sv, int64(time(nullptr)));
+            responseValues.emplace_back("Param_UtilityInfo"sv, CompressClassicJson("JSONUtilityInfo:" + ::JSON::Serialize(utilityInfo)));
+            return ERROR_OK;
+        }
+
+        uint32 GameUtilities::JoinRealm(WorldSession const* session,
+            std::vector<std::pair<std::string_view, Variant>>& params,
+            std::vector<std::pair<std::string_view, Variant>>& responseValues)
+        {
+            Variant const* realmAddress = FindParamValue(params, "Param_RealmAddress");
+            if (!realmAddress || !std::holds_alternative<uint64>(*realmAddress))
+                return ERROR_UTIL_SERVER_UNKNOWN_REALM;
+
+            RealmJoinResult result = sRealmList->JoinRealm(std::get<uint64>(*realmAddress), session->GetClientBuild(), session->GetClientBuildVariant(),
+                Trinity::Net::make_address(session->GetRemoteAddress()), session->GetRealmListSecret(), session->GetSessionDbcLocale(),
+                session->GetOS(), session->GetTimezoneOffset(), session->GetAccountName(), session->GetSecurity());
+
+            if (result.Result == ERROR_OK)
+            {
+                responseValues.emplace_back("Param_RealmJoinTicket"sv, std::move(result.JoinTicket));
+                responseValues.emplace_back("Param_ServerAddresses"sv, std::move(result.ServerAddresses));
+                responseValues.emplace_back("Param_JoinSecret"sv, std::move(result.JoinSecret));
+            }
+
+            return result.Result;
+        }
+
+        // LuaSol: Command_SuperDistrictListRequest_v1 handler for newer clients;
+        // the client renders its gameplay-style picker from Cfg_SuperDistrict.db2 rows,
+        // so the response only needs to carry the district ids known to the client.
+        // Wire format (reversed from JamJSONSuperDistrictEntry in the client binary):
+        // JSONSuperDistrictList:{"superDistricts":[{"superDistrictID":<id>,"disallowLogin":false,"holdDownUntilTime":0}, ...]}
+        uint32 GameUtilities::GetSuperDistrictList(WorldSession const* /*session*/,
+            std::vector<std::pair<std::string_view, Variant>>& /*params*/,
+            std::vector<std::pair<std::string_view, Variant>>& responseValues)
+        {
+            // LuaSol: only advertise districts that actually have realms behind them ?
+            // the client resolves each district's join target by superDistrictID, so
+            // offering a mode with no backing realm leads to NO_AVAILABLE_REALMS
+            std::string superDistricts = sRealmList->GetClassicSuperDistrictListEntries();
+
+            std::vector<uint8> json = CompressClassicJson(Trinity::StringFormat(R"(JSONSuperDistrictList:{{"superDistricts":[{}]}})", superDistricts));
+            if (json.empty())
+                return ERROR_UTIL_SERVER_FAILED_TO_SERIALIZE_RESPONSE;
+
+            responseValues.emplace_back("Param_SuperDistrictList"sv, std::move(json));
+            return ERROR_OK;
+        }
+        // LuaSol: end
     }
 
-    TC_LOG_ERROR("session.rpc", "{} sent GetAllValuesForAttributeRequest with unknown command {}.", session->GetPlayerInfo(), command);
-    return ERROR_RPC_NOT_IMPLEMENTED;
-}
-
-uint32 GameUtilities::GetRealmList(WorldSession const* session,
-    std::vector<std::pair<std::string_view, Variant>>& params,
-    std::vector<std::pair<std::string_view, Variant>>& responseValues)
-{
-    std::string subRegionId;
-    if (Variant const* subRegion = FindParamValue(params, "Command_RealmListRequest_v1"); subRegion && std::holds_alternative<std::string>(*subRegion))
-        subRegionId = std::get<std::string>(*subRegion);
-
-    std::vector<uint8> realmListJson = sRealmList->GetRealmList(session->GetClientBuild(), session->GetSecurity(), subRegionId);
-
-    if (realmListJson.empty())
-        return ERROR_UTIL_SERVER_FAILED_TO_SERIALIZE_RESPONSE;
-
-    ::JSON::RealmList::RealmCharacterCountList realmCharacterCounts;
-    for (auto const& [realmAddress, count] : session->GetRealmCharacterCounts())
+    namespace V2
     {
-        ::JSON::RealmList::RealmCharacterCountEntry* countEntry = realmCharacterCounts.add_counts();
-        countEntry->set_wowrealmaddress(realmAddress);
-        countEntry->set_count(count);
+        Battlenet::Services::Variant FromProto(bgs::protocol::v2::Variant const& from)
+        {
+            switch (from.type_case())
+            {
+            case v2::Variant::kBoolValue:
+                return from.bool_value();
+            case v2::Variant::kIntValue:
+                return from.int_value();
+            case v2::Variant::kFloatValue:
+                return from.float_value();
+            case v2::Variant::kStringValue:
+                return from.string_value();
+            case v2::Variant::kBlobValue:
+                return Variant{ std::in_place_type<std::vector<uint8>>,
+                    reinterpret_cast<uint8 const*>(from.blob_value().data()),
+                    reinterpret_cast<uint8 const*>(from.blob_value().data()) + from.blob_value().size() };
+            case v2::Variant::kUintValue:
+                return from.uint_value();
+            default:
+                break;
+            }
+
+            return { };
+        }
+
+        void ToProto(Battlenet::Services::Variant const& from, bgs::protocol::v2::Variant* to)
+        {
+            std::visit([to]<typename T>(T const& value)
+            {
+                if constexpr (std::is_same_v<T, bool>)
+                    to->set_bool_value(value);
+                else if constexpr (std::is_same_v<T, int64>)
+                    to->set_int_value(value);
+                else if constexpr (std::is_same_v<T, double>)
+                    to->set_float_value(value);
+                else if constexpr (std::is_same_v<T, std::string>)
+                    to->set_string_value(value);
+                else if constexpr (std::is_same_v<T, std::vector<uint8>>)
+                    to->set_blob_value(value.data(), value.size());
+                else if constexpr (std::is_same_v<T, uint64>)
+                    to->set_uint_value(value);
+                else
+                    static_assert(Trinity::dependant_false_v<T>);
+            }, from);
+        }
+
+        GameUtilitiesService::GameUtilitiesService(WorldSession* session) : BaseService(session)
+        {}
+
+        uint32 GameUtilitiesService::HandleProcessTask(game_utilities::v2::client::ProcessTaskRequest const* request, game_utilities::v2::client::ProcessTaskResponse* response, std::function<void(ServiceBase*, uint32, ::google::protobuf::Message const*)>& /*continuation*/)
+        {
+            std::vector<std::pair<std::string_view, Variant>> params;
+            std::vector<std::pair<std::string_view, Variant>> responseValues;
+
+            for (v2::Attribute const& attribute : request->attribute())
+            {
+                if (!attribute.has_name() || !attribute.has_value())
+                    continue;
+
+                params.emplace_back(Shared::GameUtilities::ParseParamName(attribute.name()), FromProto(attribute.value()));
+            }
+
+            uint32 result = Shared::GameUtilities::HandleClientRequest(_session, params, responseValues);
+
+            for (auto&& [name, value] : responseValues)
+            {
+                v2::Attribute* attr = response->add_result();
+                attr->set_name(name.data(), name.length());
+                ToProto(value, attr->mutable_value());
+            }
+
+            return result;
+        }
+
+        uint32 GameUtilitiesService::HandleGetAllValuesForAttribute(game_utilities::v2::client::GetAllValuesForAttributeRequest const* request, game_utilities::v2::client::GetAllValuesForAttributeResponse* response, std::function<void(ServiceBase*, uint32, google::protobuf::Message const*)>& /*continuation*/)
+        {
+            std::vector<Variant> responseValues;
+
+            uint32 result = Shared::GameUtilities::HandleGetAllValuesForAttribute(_session, Shared::GameUtilities::ParseParamName(request->attribute_key()), responseValues);
+
+            for (Variant& value : responseValues)
+                ToProto(value, response->add_attribute_value());
+
+            return result;
+        }
     }
-
-    std::string json = "JSONRealmCharacterCountList:" + ::JSON::Serialize(realmCharacterCounts);
-
-    uLongf compressedLength = compressBound(json.length());
-    std::vector<uint8> characterCountsJson(4 + compressedLength);
-    *reinterpret_cast<uint32*>(characterCountsJson.data()) = json.length() + 1;
-
-    if (compress(characterCountsJson.data() + 4, &compressedLength, reinterpret_cast<uint8 const*>(json.c_str()), json.length() + 1) != Z_OK)
-        return ERROR_UTIL_SERVER_FAILED_TO_SERIALIZE_RESPONSE;
-
-    responseValues.emplace_back("Param_RealmList"sv, std::move(realmListJson));
-    responseValues.emplace_back("Param_CharacterCountList"sv, std::move(characterCountsJson));
-
-    return ERROR_OK;
-}
-
-uint32 GameUtilities::JoinRealm(WorldSession const* session,
-    std::vector<std::pair<std::string_view, Variant>>& params,
-    std::vector<std::pair<std::string_view, Variant>>& responseValues)
-{
-    Variant const* realmAddress = FindParamValue(params, "Param_RealmAddress");
-    if (!realmAddress || !std::holds_alternative<uint64>(*realmAddress))
-        return ERROR_UTIL_SERVER_UNKNOWN_REALM;
-
-    RealmJoinResult result = sRealmList->JoinRealm(std::get<uint64>(*realmAddress), session->GetClientBuild(), session->GetClientBuildVariant(),
-        Trinity::Net::make_address(session->GetRemoteAddress()), session->GetRealmListSecret(), session->GetSessionDbcLocale(),
-        session->GetOS(), session->GetTimezoneOffset(), session->GetAccountName(), session->GetSecurity());
-
-    if (result.Result == ERROR_OK)
-    {
-        responseValues.emplace_back("Param_RealmJoinTicket"sv, std::move(result.JoinTicket));
-        responseValues.emplace_back("Param_ServerAddresses"sv, std::move(result.ServerAddresses));
-        responseValues.emplace_back("Param_JoinSecret"sv, std::move(result.JoinSecret));
-    }
-
-    return result.Result;
-}
-}
-
-namespace V2
-{
-Battlenet::Services::Variant FromProto(bgs::protocol::v2::Variant const& from)
-{
-    switch (from.type_case())
-    {
-        case v2::Variant::kBoolValue:
-            return from.bool_value();
-        case v2::Variant::kIntValue:
-            return from.int_value();
-        case v2::Variant::kFloatValue:
-            return from.float_value();
-        case v2::Variant::kStringValue:
-            return from.string_value();
-        case v2::Variant::kBlobValue:
-            return Variant{ std::in_place_type<std::vector<uint8>>,
-                reinterpret_cast<uint8 const*>(from.blob_value().data()),
-                reinterpret_cast<uint8 const*>(from.blob_value().data()) + from.blob_value().size() };
-        case v2::Variant::kUintValue:
-            return from.uint_value();
-        default:
-            break;
-    }
-
-    return { };
-}
-
-void ToProto(Battlenet::Services::Variant const& from, bgs::protocol::v2::Variant* to)
-{
-    std::visit([to]<typename T>(T const& value)
-    {
-        if constexpr (std::is_same_v<T, bool>)
-            to->set_bool_value(value);
-        else if constexpr (std::is_same_v<T, int64>)
-            to->set_int_value(value);
-        else if constexpr (std::is_same_v<T, double>)
-            to->set_float_value(value);
-        else if constexpr (std::is_same_v<T, std::string>)
-            to->set_string_value(value);
-        else if constexpr (std::is_same_v<T, std::vector<uint8>>)
-            to->set_blob_value(value.data(), value.size());
-        else if constexpr (std::is_same_v<T, uint64>)
-            to->set_uint_value(value);
-        else
-            static_assert(Trinity::dependant_false_v<T>);
-    }, from);
-}
-
-GameUtilitiesService::GameUtilitiesService(WorldSession* session) : BaseService(session)
-{
-}
-
-uint32 GameUtilitiesService::HandleProcessTask(game_utilities::v2::client::ProcessTaskRequest const* request, game_utilities::v2::client::ProcessTaskResponse* response, std::function<void(ServiceBase*, uint32, ::google::protobuf::Message const*)>& /*continuation*/)
-{
-    std::vector<std::pair<std::string_view, Variant>> params;
-    std::vector<std::pair<std::string_view, Variant>> responseValues;
-
-    for (v2::Attribute const& attribute : request->attribute())
-    {
-        if (!attribute.has_name() || !attribute.has_value())
-            continue;
-
-        params.emplace_back(Shared::GameUtilities::ParseParamName(attribute.name()), FromProto(attribute.value()));
-    }
-
-    uint32 result = Shared::GameUtilities::HandleClientRequest(_session, params, responseValues);
-
-    for (auto&& [name, value] : responseValues)
-    {
-        v2::Attribute* attr = response->add_result();
-        attr->set_name(name.data(), name.length());
-        ToProto(value, attr->mutable_value());
-    }
-
-    return result;
-}
-
-uint32 GameUtilitiesService::HandleGetAllValuesForAttribute(game_utilities::v2::client::GetAllValuesForAttributeRequest const* request, game_utilities::v2::client::GetAllValuesForAttributeResponse* response, std::function<void(ServiceBase*, uint32, google::protobuf::Message const*)>& /*continuation*/)
-{
-    std::vector<Variant> responseValues;
-
-    uint32 result = Shared::GameUtilities::HandleGetAllValuesForAttribute(_session, Shared::GameUtilities::ParseParamName(request->attribute_key()), responseValues);
-
-    for (Variant& value : responseValues)
-        ToProto(value, response->add_attribute_value());
-
-    return result;
-}
-}
 }

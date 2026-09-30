@@ -2835,7 +2835,8 @@ enum class TraitCombatConfigFlags : int32
     None                = 0x0,
     ActiveForSpec       = 0x1,
     StarterBuild        = 0x2,
-    SharedActionBars    = 0x4
+    SharedActionBars    = 0x4,
+    SecundarySpec       = 0x8
 };
 
 DEFINE_ENUM_FLAG(TraitCombatConfigFlags);

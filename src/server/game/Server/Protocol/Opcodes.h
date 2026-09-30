@@ -1097,6 +1097,7 @@ inline constexpr std::ptrdiff_t GetOpcodeArrayIndex(OpcodeClient opcode)
         case 0x41: return idInGroup < 137 ? idInGroup + 1394 : -1;
         case 0x43: return idInGroup < 428 ? idInGroup + 1531 : -1;
         case 0x44: return idInGroup <  18 ? idInGroup + 1959 : -1;
+        case 0x45: return idInGroup < 18  ? idInGroup + 1977 : -1;
         default: return -1;
     }
 }

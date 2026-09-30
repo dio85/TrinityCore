@@ -1032,8 +1032,6 @@ class TC_GAME_API WorldSession
         uint32 GetClientBuild() const { return _clientBuild; }
         ClientBuild::VariantId const& GetClientBuildVariant() const { return _clientBuildVariant; }
 
-        bool CanAccessAlliedRaces() const;
-
         /// Session in auth.queue currently
         void SetInQueue(bool state) { m_inQueue = state; }
 

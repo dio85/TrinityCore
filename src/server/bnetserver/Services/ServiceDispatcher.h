@@ -19,6 +19,7 @@
 #define TRINITYCORE_BNET_SERVICE_DISPATCHER_H
 
 #include "MessageBuffer.h"
+#include <string>
 #include <unordered_map>
 
 namespace Battlenet
@@ -39,6 +40,7 @@ namespace Battlenet
         void AddService()
         {
             _dispatchers[Service::OriginalHash::value] = &ServiceDispatcher::Dispatch<Service>;
+            _serviceNames[Service::OriginalHash::value] = Service::descriptor()->full_name();    // LuaSol
         }
 
         template<class Service>
@@ -49,6 +51,7 @@ namespace Battlenet
 
         typedef void(*ServiceMethod)(Session*, uint32, uint32, MessageBuffer);
         std::unordered_map<uint32, ServiceMethod> _dispatchers;
+        std::unordered_map<uint32, std::string> _serviceNames;   // LuaSol
     };
 }
 

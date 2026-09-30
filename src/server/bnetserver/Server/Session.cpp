@@ -71,12 +71,11 @@ void Battlenet::GameAccountInfo::LoadResult(Field const* fields)
 constexpr std::size_t PacketHeaderLengthSize = sizeof(uint16);
 
 Battlenet::Session::Session(Trinity::Net::IoContextTcpSocket&& socket) : _socket(CreateSocket(std::move(socket))),
-    _packetReadState(PacketReadState::HeaderLength), _packetBuffer(PacketHeaderLengthSize),
-    _sessionId(++sSessionMgr.SessionIdGenerator), _creationTime(SystemTimePoint::clock::now()),
-    _accountInfo(new AccountInfo()), _gameAccountInfo(nullptr), _locale(),
-    _os(), _build(0), _buildVariant(), _timezoneOffset(0min), _ipCountry(), _clientSecret(), _authed(false), _requestToken(0)
-{
-}
+_packetReadState(PacketReadState::HeaderLength), _packetBuffer(PacketHeaderLengthSize),
+_sessionId(++sSessionMgr.SessionIdGenerator), _creationTime(SystemTimePoint::clock::now()),
+_accountInfo(new AccountInfo()), _gameAccountInfo(nullptr), _locale(),
+_os(), _build(0), _buildVariant(), _timezoneOffset(0min), _ipCountry(), _clientSecret(), _authed(false), _requestToken(0)
+{}
 
 Battlenet::Session::~Session() = default;
 
@@ -240,7 +239,7 @@ Battlenet::LastPlayedCharacterInfo const* Battlenet::Session::GetLastPlayedChara
     return itr != _gameAccountInfo->LastPlayedCharacters.end() ? &itr->second : nullptr;
 }
 
-template<bool(Battlenet::Session::*processMethod)()>
+template<bool(Battlenet::Session::* processMethod)()>
 static inline Optional<Trinity::Net::SocketReadCallbackResult> PartialProcessPacket(Battlenet::Session* session, MessageBuffer& inputBuffer, MessageBuffer& buffer)
 {
     // We have full read header, now check the data payload
@@ -276,18 +275,18 @@ Trinity::Net::SocketReadCallbackResult Battlenet::Session::ReadHandler()
     {
         switch (_packetReadState)
         {
-            case PacketReadState::HeaderLength:
-                if (Optional<Trinity::Net::SocketReadCallbackResult> partialResult = PartialProcessPacket<&Session::ReadHeaderLengthHandler>(this, packet, _packetBuffer))
-                    return *partialResult;
-                [[fallthrough]];
-            case PacketReadState::Header:
-                if (Optional<Trinity::Net::SocketReadCallbackResult> partialResult = PartialProcessPacket<&Session::ReadHeaderHandler>(this, packet, _packetBuffer))
-                    return *partialResult;
-                [[fallthrough]];
-            case PacketReadState::Data:
-                if (Optional<Trinity::Net::SocketReadCallbackResult> partialResult = PartialProcessPacket<&Session::ReadDataHandler>(this, packet, _packetBuffer))
-                    return *partialResult;
-                break;
+        case PacketReadState::HeaderLength:
+            if (Optional<Trinity::Net::SocketReadCallbackResult> partialResult = PartialProcessPacket<&Session::ReadHeaderLengthHandler>(this, packet, _packetBuffer))
+                return *partialResult;
+            [[fallthrough]];
+        case PacketReadState::Header:
+            if (Optional<Trinity::Net::SocketReadCallbackResult> partialResult = PartialProcessPacket<&Session::ReadHeaderHandler>(this, packet, _packetBuffer))
+                return *partialResult;
+            [[fallthrough]];
+        case PacketReadState::Data:
+            if (Optional<Trinity::Net::SocketReadCallbackResult> partialResult = PartialProcessPacket<&Session::ReadDataHandler>(this, packet, _packetBuffer))
+                return *partialResult;
+            break;
         }
     }
 
@@ -331,6 +330,7 @@ bool Battlenet::Session::ReadDataHandler()
     }
     else
     {
+        TC_LOG_INFO("session.rpc", "{} RPC response for server request: token {} status {}", GetClientInfo(), header.token(), header.status());   // LuaSol
         if (auto responseCallback = _responseCallbacks.extract(header.token()))
             responseCallback.mapped()(std::move(_packetBuffer));
         else

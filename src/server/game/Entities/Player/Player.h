@@ -829,7 +829,13 @@ enum EquipableSpellSlots
 enum AccountBankBagSlots
 {
     ACCOUNT_BANK_SLOT_BAG_START = 100,
-    ACCOUNT_BANK_SLOT_BAG_END   = 105
+    ACCOUNT_BANK_SLOT_BAG_END   = 113
+};
+
+enum KeyRingSlots
+{
+    KEYRING_SLOT_START          = 113,
+    KEYRING_SLOT_END            = 145
 };
 
 struct ItemPosCount
@@ -1631,6 +1637,7 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void SetBuybackTimestamp(uint32 slot, time_t timestamp) { SetUpdateFieldValue(m_values.ModifyValue(&Player::m_activePlayerData).ModifyValue(&UF::ActivePlayerData::BuybackTimestamp, slot), timestamp); }
         Item* GetItemFromBuyBackSlot(uint32 slot);
         void RemoveItemFromBuyBackSlot(uint32 slot, bool del);
+        uint32 GetMaxKeyringSize() const { return KEYRING_SLOT_END - KEYRING_SLOT_START; }
         void SendEquipError(InventoryResult msg, Item const* item1 = nullptr, Item const* item2 = nullptr, uint32 itemId = 0) const;
         void SendBuyError(BuyResult msg, Creature* creature, uint32 item, uint32 param) const;
         void SendSellError(SellResult msg, Creature* creature, ObjectGuid guid) const;
@@ -2018,6 +2025,10 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         void IncreaseResetTalentsCostAndCounters(uint32 lastResetTalentsCost);
         void InitTalentForLevel();
         void SendTalentsInfoData();
+        UF::TraitConfig const* GetClassicSpecGroupConfig(bool secondary) const;   // Classic 1.60 dual spec
+        bool ActivateClassicSpecGroup(bool secondary);
+        bool PurchaseClassicDualSpec();
+        static bool IsClassicDualSpecGossipOption(int32 gossipOptionId);
         TalentLearnResult LearnTalent(uint32 talentId, int32* spellOnCooldown);
         bool AddTalent(TalentEntry const* talent, uint8 spec, bool learning);
         bool HasTalent(uint32 spell_id, uint8 spec) const;
@@ -2337,6 +2348,12 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         WorldLocation const& GetCorpseLocation() const { return _corpseLocation; }
         void InitializeSelfResurrectionSpells();
         void ResurrectPlayer(float restore_percent, bool applySickness = false);
+
+        // Classic 1.60 Hardcore realms: only the .revive command may bring a character back
+        void SetHardcoreReviveAllowed(bool allowed) { m_hardcoreReviveAllowed = allowed; }
+        bool RefuseHardcoreResurrect();     // true (and tells the player) when a resurrection is not allowed
+        bool m_hardcoreReviveAllowed = false;
+
         void BuildPlayerRepop();
         void RepopAtGraveyard();
 
@@ -2374,6 +2391,13 @@ class TC_GAME_API Player final : public Unit, public GridObject<Player>
         int16 GetSkillTempBonusValue(uint32 skill) const;
         uint16 GetSkillStep(uint32 skill) const;            // 0...6
         uint32 GetProfessionSkillForExp(uint32 skill, int32 expansion) const;
+
+        // Classic 1.60: professions use only their main skill line; the retail expansion child lines (First Aid 129 -> 2942) stay empty
+        static bool IsClassicProfessionChildSkill(SkillLineEntry const* skillEntry);
+        static uint32 GetClassicProfessionSkill(uint32 skill);
+        void SyncClassicProfessionChildSkills(uint32 skill);
+        void UpdateClassicLegacyUnlock();
+
         bool HasSkill(uint32 skill) const;
         void LearnSkillRewardedSpells(uint32 skillId, uint32 skillValue, Races race);
         int32 GetProfessionSlotFor(uint32 skillId) const;

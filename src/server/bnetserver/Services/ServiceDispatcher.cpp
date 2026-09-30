@@ -66,6 +66,13 @@ Battlenet::ServiceDispatcher::ServiceDispatcher()
 void Battlenet::ServiceDispatcher::Dispatch(Session* session, uint32 serviceHash, uint32 token, uint32 methodId, MessageBuffer buffer)
 {
     auto itr = _dispatchers.find(serviceHash);
+    // LuaSol: log every incoming RPC to the console so we can see where the login flow stalls
+    auto nameItr = _serviceNames.find(serviceHash);
+    TC_LOG_INFO("session.rpc", "{} RPC: {} (0x{:X}) method {} token {}",
+        session->GetClientInfo(),
+        nameItr != _serviceNames.end() ? std::string_view(nameItr->second) : "unknown"sv,
+        serviceHash, methodId & 0x3FFFFFFF, token);
+    // LuaSol: end
     if (itr != _dispatchers.end())
         itr->second(session, token, methodId, std::move(buffer));
     else

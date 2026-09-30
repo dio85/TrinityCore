@@ -67,6 +67,7 @@ namespace WorldPackets
             bool UseNPE           = false;
             bool HardcoreSelfFound = false;
             std::string Name;
+            std::string Surname;    // Classic 1.60
 
             /// Server side data
             uint8 CharCount  = 0;
@@ -307,6 +308,7 @@ namespace WorldPackets
 
             uint32 SequenceIndex = 0;
             std::string Name;
+            std::string SurName;
         };
 
         class CheckCharacterNameAvailabilityResult final : public ServerPacket

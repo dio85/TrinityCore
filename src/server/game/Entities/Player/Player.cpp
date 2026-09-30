@@ -48,6 +48,7 @@
 #include "CombatLogPackets.h"
 #include "CombatPackets.h"
 #include "Common.h"
+#include "Config.h"
 #include "ConditionMgr.h"
 #include "Containers.h"
 #include "CreatureAI.h"
@@ -89,6 +90,7 @@
 #include "MailPackets.h"
 #include "MapManager.h"
 #include "MapUtils.h"
+#include "Memory.h"
 #include "MiscPackets.h"
 #include "MotionMaster.h"
 #include "MovementPackets.h"
@@ -2284,7 +2286,47 @@ void Player::GiveLevel(uint8 level)
 
     PushQuests();
 
+    UpdateClassicLegacyUnlock();
+
     sScriptMgr->OnPlayerLevelChanged(this, oldLevel);
+}
+
+void Player::UpdateClassicLegacyUnlock()
+{
+    // Classic 1.60: the Legacy system (micro menu "Legacy", LegacyMicroButtonMixin:IsLegacySystemUnlocked) opens with renown level 1
+    // of the Legacy reward track faction 2802; renown level = quantity of its renown currency 3485. The client says it unlocks at level 25.
+    static constexpr uint32 LegacyRenownCurrencyID = 3485;
+    static constexpr uint32 LegacyRewardTrackFactionID = 2802;
+    static constexpr uint32 LegacyPointsTraitCurrencyID = 4225;
+    static constexpr uint32 LegacyTraitSystemID = 45;               // Legacy trees 1187 Professions, 1188 Adventure, 1189 Progression
+    static constexpr uint32 SpellCreateLegacyTraitConfig = 1282612; // SPELL_EFFECT_CREATE_TRAIT_TREE_CONFIG, tree 1188
+    static constexpr uint8 LegacyUnlockLevel = 25;
+
+    // every Legacy page asks for the trait config of the Legacy trees (C_Traits.GetConfigIDByTreeID); without it the window errors
+    if (!m_activePlayerData->TraitConfigs.FindIf([](UF::TraitConfig const& config)
+        {
+            return static_cast<TraitConfigType>(*config.Type) == TraitConfigType::Generic && config.TraitSystemID == int32(LegacyTraitSystemID);
+        }).first)
+        CastSpell(this, SpellCreateLegacyTraitConfig, true);
+
+    // Renown on the Legacy reward track = Legacy Points earned: the challenges ("Reach level 25/45/60 for the first time on <class>")
+    // are TraitCurrencySource rows of currency 4225. Rows still tied to another ruleset (SuperDistrictSetID != 0 after the
+    // 2026_09_30_00 hotfix) belong to the other copy of each challenge and are not counted. The first point comes at level 25.
+    int32 earnedLegacyPoints = 0;
+    for (TraitCurrencySourceEntry const* source : sTraitCurrencySourceStore)
+        if (source->TraitCurrencyID == LegacyPointsTraitCurrencyID && !source->SuperDistrictSetID && source->AchievementID && HasAchieved(source->AchievementID))
+            earnedLegacyPoints += source->Amount;
+
+    int32 renown = int32(GetCurrencyQuantity(LegacyRenownCurrencyID));
+    if (earnedLegacyPoints > renown)
+        ModifyCurrency(LegacyRenownCurrencyID, earnedLegacyPoints - renown);
+
+    if (!earnedLegacyPoints && GetLevel() < LegacyUnlockLevel)
+        return;
+
+    // the reward track shows the progress towards the next renown level from the faction's reputation, so the client must know it
+    if (FactionEntry const* legacyFaction = sFactionStore.LookupEntry(LegacyRewardTrackFactionID))
+        GetReputationMgr().SetVisible(legacyFaction);
 }
 
 bool Player::IsMaxLevel() const
@@ -2961,6 +3003,11 @@ bool Player::AddSpell(uint32 spellId, bool active, bool learning, bool dependent
             if (skill_value < spellLearnSkill->value)
                 skill_value = spellLearnSkill->value;
 
+            // Classic 1.60: vanilla trainers teach profession ranks (e.g. First Aid 3273) directly instead of casting them, so
+            // the skill starts here; value 0 would mean "no skill" (Spell::EffectSkill uses at least 1 too)
+            if (!skill_value)
+                skill_value = 1;
+
             uint16 new_skill_max_value = spellLearnSkill->maxvalue;
 
             if (new_skill_max_value == 0)
@@ -3479,6 +3526,17 @@ bool Player::ResetTalents(bool involuntarily /*= false*/)
             continue;
 
         RemoveTalent(talentInfo);
+    }
+
+    // Classic 1.60: talents are a trait config (C_ClassTalents); drop every purchased rank of the active combat config
+    // and keep only ranks the tree grants for free
+    if (UF::TraitConfig const* activeConfig = GetTraitConfig(m_activePlayerData->ActiveCombatTraitConfigID))
+    {
+        WorldPackets::Traits::TraitConfig resetConfig(*activeConfig);
+        std::erase_if(resetConfig.Entries, [](WorldPackets::Traits::TraitEntry const& entry) { return entry.GrantedRanks == 0; });
+        for (WorldPackets::Traits::TraitEntry& entry : resetConfig.Entries)
+            entry.Rank = 0;
+        UpdateTraitConfig(std::move(resetConfig), 0, false);
     }
 
     CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
@@ -4296,8 +4354,22 @@ void Player::BuildPlayerRepop()
     sScriptMgr->OnPlayerRepop(this);
 }
 
+bool Player::RefuseHardcoreResurrect()
+{
+    // Classic 1.60 Hardcore ruleset realm (Classic.Hardcore = 1): death is permanent, no spirit healer, corpse run or resurrection spell
+    // brings the character back, also not on game master accounts. Only staff using the .revive command can (SetHardcoreReviveAllowed).
+    if (IsAlive() || m_hardcoreReviveAllowed || !sConfigMgr->GetBoolDefault("Classic.Hardcore", false))
+        return false;
+
+    ChatHandler(GetSession()).SendSysMessage("Hardcore: this character has fallen. Death is permanent on this realm.");
+    return true;
+}
+
 void Player::ResurrectPlayer(float restore_percent, bool applySickness)
 {
+    if (RefuseHardcoreResurrect())
+        return;
+
     SetAreaSpiritHealer(nullptr);
 
     WorldPackets::Misc::DeathReleaseLoc packet;
@@ -5427,18 +5499,20 @@ bool Player::UpdateCraftSkill(SpellInfo const* spellInfo)
     {
         if (_spell_idx->second->SkillupSkillLineID)
         {
-            uint32 SkillValue = GetPureSkillValue(_spell_idx->second->SkillupSkillLineID);
+            // Classic 1.60: skill-ups go to the profession itself (the recipe data points at the expansion child line)
+            uint32 skillupSkill = GetClassicProfessionSkill(_spell_idx->second->SkillupSkillLineID);
+            uint32 SkillValue = GetPureSkillValue(skillupSkill);
 
             // Alchemy Discoveries here
             if (spellInfo->Mechanic == MECHANIC_DISCOVERY)
             {
-                if (uint32 discoveredSpell = GetSkillDiscoverySpell(_spell_idx->second->SkillupSkillLineID, spellInfo->Id, this))
+                if (uint32 discoveredSpell = GetSkillDiscoverySpell(skillupSkill, spellInfo->Id, this))
                     LearnSpell(discoveredSpell, false);
             }
 
             uint32 craft_skill_gain = _spell_idx->second->NumSkillUps * sWorld->getIntConfig(CONFIG_SKILL_GAIN_CRAFTING);
 
-            return UpdateSkillPro(_spell_idx->second->SkillupSkillLineID, SkillGainChance(SkillValue,
+            return UpdateSkillPro(skillupSkill, SkillGainChance(SkillValue,
                 _spell_idx->second->TrivialSkillLineRankHigh,
                 (_spell_idx->second->TrivialSkillLineRankHigh + _spell_idx->second->TrivialSkillLineRankLow)/2,
                 _spell_idx->second->TrivialSkillLineRankLow),
@@ -5577,6 +5651,8 @@ bool Player::UpdateSkillPro(uint16 skillId, int32 chance, uint32 step)
     if (itr->second.uState != SKILL_NEW)
         itr->second.uState = SKILL_CHANGED;
 
+    SyncClassicProfessionChildSkills(skillId);
+
     for (uint32 bsl : bonusSkillLevels)
     {
         if (value < bsl && new_value >= bsl)
@@ -5625,6 +5701,10 @@ void Player::UpdateSkillsForLevel()
         if (!rcEntry)
             continue;
 
+        // Classic 1.60: profession child lines copy their profession, their cap does not follow the character level
+        if (IsClassicProfessionChildSkill(sSkillLineStore.LookupEntry(pskill)))
+            continue;
+
         if (GetSkillRangeType(rcEntry) == SKILL_RANGE_LEVEL)
         {
             if (rcEntry->Flags & SKILL_FLAG_ALWAYS_MAX_VALUE)
@@ -5668,6 +5748,28 @@ void Player::SetSkill(uint32 id, uint16 step, uint16 newVal, uint16 maxVal)
         return;
     }
 
+    // Classic 1.60: profession child lines copy the profession (SyncClassicProfessionChildSkills), they never change it
+    bool const classicProfessionChild = IsClassicProfessionChildSkill(skillEntry);
+    if (classicProfessionChild && newVal)
+    {
+        SkillStatusMap::const_iterator parent = mSkillStatus.find(skillEntry->ParentSkillLineID);
+        if (parent == mSkillStatus.end() || parent->second.uState == SKILL_DELETED || !GetSkillRankByPos(parent->second.pos))
+            step = newVal = maxVal = 0;
+        else
+        {
+            step = GetSkillStepByPos(parent->second.pos);
+            newVal = GetSkillRankByPos(parent->second.pos);
+            maxVal = GetSkillMaxRankByPos(parent->second.pos);
+        }
+    }
+
+    // after the profession itself changed, its child lines are updated to match (see the end of this function)
+    auto syncChildren = Trinity::make_unique_ptr_with_deleter(this, [id, classicProfessionChild](Player* player)
+        {
+            if (!classicProfessionChild)
+                player->SyncClassicProfessionChildSkills(id);
+        });
+
     uint16 currVal;
     SkillStatusMap::iterator itr = mSkillStatus.find(id);
 
@@ -5697,7 +5799,8 @@ void Player::SetSkill(uint32 id, uint16 step, uint16 newVal, uint16 maxVal)
         if (newVal)
         {
             // enable parent skill line if missing
-            if (skillEntry->ParentSkillLineID && skillEntry->ParentTierIndex > 0 && GetSkillStep(skillEntry->ParentSkillLineID) < skillEntry->ParentTierIndex)
+            // Classic 1.60: profession child lines must not set the parent's rank, Classic ranks come from the rank spells
+            if (skillEntry->ParentSkillLineID && !classicProfessionChild && skillEntry->ParentTierIndex > 0 && GetSkillStep(skillEntry->ParentSkillLineID) < skillEntry->ParentTierIndex)
                 if (SkillRaceClassInfoEntry const* rcEntry = sDB2Manager.GetSkillRaceClassInfo(skillEntry->ParentSkillLineID, GetRace(), GetClass()))
                     if (SkillTiersEntry const* tier = sObjectMgr->GetSkillTier(rcEntry->SkillTierID))
                         SetSkill(skillEntry->ParentSkillLineID, skillEntry->ParentTierIndex, std::max<uint16>(GetPureSkillValue(skillEntry->ParentSkillLineID), 1), tier->GetValueForTierIndex(skillEntry->ParentTierIndex - 1));
@@ -5824,7 +5927,9 @@ void Player::SetSkill(uint32 id, uint16 step, uint16 newVal, uint16 maxVal)
 
         if (skillEntry->ParentSkillLineID)
         {
-            if (skillEntry->ParentTierIndex > 0)
+            // Classic 1.60: profession child lines (e.g. First Aid 129 -> 2942) must not set the parent's rank,
+           // Classic ranks come from the rank spells (First Aid became 1/300 instead of 1/75)
+            if (skillEntry->ParentTierIndex > 0 && !classicProfessionChild)
             {
                 if (SkillRaceClassInfoEntry const* rcEntry = sDB2Manager.GetSkillRaceClassInfo(skillEntry->ParentSkillLineID, GetRace(), GetClass()))
                 {
@@ -5877,11 +5982,47 @@ void Player::SetSkill(uint32 id, uint16 step, uint16 newVal, uint16 maxVal)
     }
 }
 
+bool Player::IsClassicProfessionChildSkill(SkillLineEntry const* skillEntry)
+{
+    if (!skillEntry || !skillEntry->ParentSkillLineID)
+        return false;
+
+    SkillLineEntry const* parent = sSkillLineStore.LookupEntry(skillEntry->ParentSkillLineID);
+    return parent && (parent->CategoryID == SKILL_CATEGORY_PROFESSION || parent->CategoryID == SKILL_CATEGORY_SECONDARY);
+}
+
+void Player::SyncClassicProfessionChildSkills(uint32 skill)
+{
+    SkillLineEntry const* skillEntry = sSkillLineStore.LookupEntry(skill);
+    if (!skillEntry || skillEntry->ParentSkillLineID || (skillEntry->CategoryID != SKILL_CATEGORY_PROFESSION && skillEntry->CategoryID != SKILL_CATEGORY_SECONDARY))
+        return;
+
+    std::vector<SkillLineEntry const*> const* childSkillLines = sDB2Manager.GetSkillLinesForParentSkill(skill);
+    if (!childSkillLines)
+        return;
+
+    // the profession window lists recipes and shows the rank of the child line, so it must equal the profession itself
+    uint16 value = GetPureSkillValue(skill);
+    uint16 maxValue = GetPureMaxSkillValue(skill);
+    uint16 step = GetSkillStep(skill);
+    for (SkillLineEntry const* childSkillLine : *childSkillLines)
+        if (GetPureSkillValue(childSkillLine->ID) != value || GetPureMaxSkillValue(childSkillLine->ID) != maxValue || GetSkillStep(childSkillLine->ID) != step)
+            SetSkill(childSkillLine->ID, step, value, maxValue);
+}
+
+uint32 Player::GetClassicProfessionSkill(uint32 skill)
+{
+    SkillLineEntry const* skillEntry = sSkillLineStore.LookupEntry(skill);
+    return IsClassicProfessionChildSkill(skillEntry) ? skillEntry->ParentSkillLineID : skill;
+}
+
 uint32 Player::GetProfessionSkillForExp(uint32 skill, int32 expansion) const
 {
     SkillLineEntry const* skillEntry = sSkillLineStore.LookupEntry(skill);
     if (!skillEntry)
         return 0;
+
+
 
     if (skillEntry->ParentSkillLineID || (skillEntry->CategoryID != SKILL_CATEGORY_PROFESSION && skillEntry->CategoryID != SKILL_CATEGORY_SECONDARY))
         return 0;
@@ -6558,7 +6699,7 @@ void Player::RewardReputation(Unit* victim, float rate)
 
     uint32 ChampioningFaction = 0;
 
-    if (GetChampioningFaction())
+    /*if (GetChampioningFaction())
     {
         // support for: Championing - http://www.wowwiki.com/Championing
         Map const* map = GetMap();
@@ -6567,7 +6708,7 @@ void Player::RewardReputation(Unit* victim, float rate)
                 if (Optional<ContentTuningLevels> dungeonLevels = sDB2Manager.GetContentTuningData(dungeon->ContentTuningID, m_playerData->CtrOptions->ConditionalFlags))
                     if (dungeonLevels->TargetLevelMax == int16(GetMaxLevelForExpansion(EXPANSION_WRATH_OF_THE_LICH_KING)))
                         ChampioningFaction = GetChampioningFaction();
-    }
+    }*/
 
     uint32 team = GetTeam();
 
@@ -9279,71 +9420,15 @@ uint8 Player::FindEquipSlot(Item const* item, uint8 slot, bool swap) const
             slots[0] = EQUIPMENT_SLOT_MAINHAND;
             break;
         case INVTYPE_BAG:
-            if (item->GetTemplate()->GetClass() != ITEM_CLASS_CONTAINER || item->GetTemplate()->GetSubClass() != ITEM_SUBCLASS_REAGENT_CONTAINER)
-                slots = { INVENTORY_SLOT_BAG_START + 0, INVENTORY_SLOT_BAG_START + 1, INVENTORY_SLOT_BAG_START + 2, INVENTORY_SLOT_BAG_START + 3 };
+            if (item->GetTemplate()->GetId() == ITEM_ACCOUNT_BANK_TAB_BAG)
+                slots = { ACCOUNT_BANK_SLOT_BAG_START + 0, ACCOUNT_BANK_SLOT_BAG_START + 1, ACCOUNT_BANK_SLOT_BAG_START + 2, ACCOUNT_BANK_SLOT_BAG_START + 3, ACCOUNT_BANK_SLOT_BAG_START + 4, NULL_SLOT };
+            else if (item->GetTemplate()->GetId() == ITEM_CHARACTER_BANK_TAB_BAG)
+                slots = { BANK_SLOT_BAG_START + 0, BANK_SLOT_BAG_START + 1, BANK_SLOT_BAG_START + 2, BANK_SLOT_BAG_START + 3, BANK_SLOT_BAG_START + 4, BANK_SLOT_BAG_START + 5 };
+            else if (item->GetTemplate()->GetClass() != ITEM_CLASS_CONTAINER || item->GetTemplate()->GetSubClass() != ITEM_SUBCLASS_REAGENT_CONTAINER)
+                slots = { INVENTORY_SLOT_BAG_START + 0, INVENTORY_SLOT_BAG_START + 1, INVENTORY_SLOT_BAG_START + 2, INVENTORY_SLOT_BAG_START + 3, NULL_SLOT, NULL_SLOT };
             else
                 slots[0] = REAGENT_BAG_SLOT_START;
             break;
-        case INVTYPE_PROFESSION_TOOL:
-        case INVTYPE_PROFESSION_GEAR:
-        {
-            bool isProfessionTool = item->GetTemplate()->GetInventoryType() == INVTYPE_PROFESSION_TOOL;
-
-            // Validate item class
-            if (item->GetTemplate()->GetClass() != ITEM_CLASS_PROFESSION)
-                return NULL_SLOT;
-
-            // Check if player has profession skill
-            uint32 itemSkill = item->GetTemplate()->GetSkill();
-            if (!HasSkill(itemSkill))
-                return NULL_SLOT;
-
-            switch (item->GetTemplate()->GetSubClass())
-            {
-                case ITEM_SUBCLASS_PROFESSION_COOKING:
-                    slots[0] = isProfessionTool ? PROFESSION_SLOT_COOKING_TOOL : PROFESSION_SLOT_COOKING_GEAR1;
-                    break;
-                case ITEM_SUBCLASS_PROFESSION_FISHING:
-                {
-                    // Fishing doesn't make use of gear slots (clientside)
-                    if (!isProfessionTool)
-                        return NULL_SLOT;
-
-                    slots[0] = PROFESSION_SLOT_FISHING_TOOL;
-                    break;
-                }
-                case ITEM_SUBCLASS_PROFESSION_BLACKSMITHING:
-                case ITEM_SUBCLASS_PROFESSION_LEATHERWORKING:
-                case ITEM_SUBCLASS_PROFESSION_ALCHEMY:
-                case ITEM_SUBCLASS_PROFESSION_HERBALISM:
-                case ITEM_SUBCLASS_PROFESSION_MINING:
-                case ITEM_SUBCLASS_PROFESSION_TAILORING:
-                case ITEM_SUBCLASS_PROFESSION_ENGINEERING:
-                case ITEM_SUBCLASS_PROFESSION_ENCHANTING:
-                case ITEM_SUBCLASS_PROFESSION_SKINNING:
-                case ITEM_SUBCLASS_PROFESSION_JEWELCRAFTING:
-                case ITEM_SUBCLASS_PROFESSION_INSCRIPTION:
-                {
-                    int32 professionSlot = GetProfessionSlotFor(itemSkill);
-                    if (professionSlot == -1)
-                        return NULL_SLOT;
-
-                    if (isProfessionTool)
-                        slots[0] = PROFESSION_SLOT_PROFESSION1_TOOL + professionSlot * PROFESSION_SLOT_MAX_COUNT;
-                    else
-                    {
-                        slots[0] = PROFESSION_SLOT_PROFESSION1_GEAR1 + professionSlot * PROFESSION_SLOT_MAX_COUNT;
-                        slots[1] = PROFESSION_SLOT_PROFESSION1_GEAR2 + professionSlot * PROFESSION_SLOT_MAX_COUNT;
-                    }
-
-                    break;
-                }
-                default:
-                    return NULL_SLOT;
-            }
-            break;
-        }
-        default:
             return NULL_SLOT;
     }
 
@@ -10055,6 +10140,11 @@ InventoryResult Player::CanStoreItem_InSpecificSlot(uint8 bag, uint8 slot, ItemP
                 return EQUIP_ERR_WRONG_BAG_TYPE;
             if (slot < INVENTORY_SLOT_ITEM_END && slot >= INVENTORY_SLOT_ITEM_START + GetInventorySlotCount())
                 return EQUIP_ERR_NO_SLOT_AVAILABLE;
+            // keyring case
+            if (slot >= KEYRING_SLOT_START && slot < KEYRING_SLOT_START + GetMaxKeyringSize() && !BagFamily::BAG_FAMILY_KEYS)
+            {
+                return EQUIP_ERR_WRONG_BAG_TYPE;
+            }
         }
         else
         {
@@ -13881,6 +13971,14 @@ void Player::PrepareGossipMenu(WorldObject* source, uint32 menuId, bool showQues
             }
         }
 
+        // Classic 1.60 dual spec purchase: class trainers of the player's class, from level 10, until bought
+        if (IsClassicDualSpecGossipOption(gossipMenuItem.GossipOptionID))
+        {
+            Creature* creature = source->ToCreature();
+            if (!creature || !creature->CanResetTalents(this) || GetClassicSpecGroupConfig(true))
+                canTalk = false;
+        }
+
         if (canTalk)
             PlayerTalkClass->GetGossipMenu().AddMenuItem(gossipMenuItem, gossipMenuItem.MenuID, gossipMenuItem.OrderIndex);
     }
@@ -13959,6 +14057,13 @@ void Player::OnGossipSelect(WorldObject* source, int32 gossipOptionId, uint32 me
     switch (gossipOptionNpc)
     {
         case GossipOptionNpc::None:
+            if (IsClassicDualSpecGossipOption(item->GossipOptionID))
+            {
+                PlayerTalkClass->SendCloseGossip();
+                Creature* creature = source->ToCreature();
+                if (!creature || !creature->CanResetTalents(this) || !PurchaseClassicDualSpec())
+                    return;                                 // not charged
+            }
             break;
         case GossipOptionNpc::Vendor:
             GetSession()->SendListInventory(guid);
@@ -17849,6 +17954,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
         ObjectGuid::LowType guid;
         uint32 account;
         std::string name;
+        std::string surname;
         uint8 race;
         uint8 class_;
         Gender gender;
@@ -17930,6 +18036,7 @@ bool Player::LoadFromDB(ObjectGuid guid, CharacterDatabaseQueryHolder const& hol
             guid = fields[i++].GetUInt64();
             account = fields[i++].GetUInt32();
             name = fields[i++].GetString();
+            surname = fields[i++].GetString();
             race = fields[i++].GetUInt8();
             class_ = fields[i++].GetUInt8();
             gender = Gender(fields[i++].GetUInt8());
@@ -25295,7 +25402,7 @@ void Player::LearnSkillRewardedSpells(uint32 skillId, uint32 skillValue, Races r
         }
 
         // Check race if set
-        if (!ability->RaceMasks.IsEmpty() && !ability->RaceMasks.HasRace(race))
+        if (!ability->RaceMask.IsEmpty() && !ability->RaceMask.HasRace(race))
             continue;
 
         // Check class if set
@@ -25722,7 +25829,7 @@ bool Player::IsSpellFitByClassAndRace(uint32 spell_id) const
     for (SkillLineAbilityMap::const_iterator _spell_idx = bounds.first; _spell_idx != bounds.second; ++_spell_idx)
     {
         // skip wrong race skills
-        if (!_spell_idx->second->RaceMasks.IsEmpty() && !_spell_idx->second->RaceMasks.HasRace(race))
+        if (!_spell_idx->second->RaceMask.IsEmpty() && !_spell_idx->second->RaceMask.HasRace(race))
             continue;
 
         // skip wrong class skills
@@ -28001,7 +28108,101 @@ void Player::SendTalentsInfoData()
             packet.Info.TalentGroups.push_back(groupInfoPkt);
     }
 
+    // Classic 1.60 dual spec: the client's spec group count (GetNumSpecGroups) is the number of talent groups sent here.
+    // Classic classes have a single specialization; a second group exists once the character owns a combat trait config
+    // flagged SecondarySpec (bought from a class trainer). Talents themselves live in the trait configs.
+    if (ChrSpecializationEntry const* spec = sDB2Manager.GetChrSpecializationByIndex(GetClass(), 0);
+        spec && !sDB2Manager.GetChrSpecializationByIndex(GetClass(), 1))
+    {
+        if (packet.Info.TalentGroups.empty())
+        {
+            packet.Info.TalentGroups.emplace_back();
+            packet.Info.TalentGroups.back().SpecID = spec->ID;
+        }
+        packet.Info.TalentGroups.resize(1);
+        packet.Info.ActiveGroup = 0;
+        if (GetClassicSpecGroupConfig(true))
+        {
+            WorldPackets::Talent::TalentGroupInfo secondaryGroup;
+            secondaryGroup.SpecID = spec->ID;
+            packet.Info.TalentGroups.push_back(secondaryGroup);
+            packet.Info.ActiveGroup = GetActiveTalentGroup() == 1 ? 1 : 0;
+        }
+    }
+
     SendDirectMessage(packet.Write());
+}
+
+// Classic 1.60 dual spec: combat trait config of spec group 0 (ActiveForSpec) or 1 (SecundarySpec) for the current spec
+UF::TraitConfig const* Player::GetClassicSpecGroupConfig(bool secondary) const
+{
+    TraitCombatConfigFlags flag = secondary ? TraitCombatConfigFlags::SecundarySpec : TraitCombatConfigFlags::ActiveForSpec;
+    return m_activePlayerData->TraitConfigs.FindIf([&](UF::TraitConfig const& traitConfig)
+        {
+            return traitConfig.Type == AsUnderlyingType(TraitConfigType::Combat)
+                && traitConfig.ChrSpecializationID == int32(GetPrimarySpecialization())
+                && traitConfig.CombatConfigFlags & AsUnderlyingType(flag);
+        }).second;
+}
+
+// Classic 1.60 dual spec: bought from class trainers (gossip options 95000000 + menu, sql/custom/world 2026_09_28_20)
+bool Player::IsClassicDualSpecGossipOption(int32 gossipOptionId)
+{
+    return gossipOptionId >= 95000000 && gossipOptionId < 96000000;
+}
+
+bool Player::PurchaseClassicDualSpec()
+{
+    if (GetClassicSpecGroupConfig(true))
+        return false;
+
+    UF::TraitConfig const* primary = GetClassicSpecGroupConfig(false);
+    if (!primary)
+        return false;
+
+    int32 localIdentifier = 1;
+    while (m_activePlayerData->TraitConfigs.FindIf([&](UF::TraitConfig const& traitConfig)
+        {
+            return traitConfig.Type == AsUnderlyingType(TraitConfigType::Combat) && traitConfig.LocalIdentifier == localIdentifier;
+        }).first)
+        ++localIdentifier;
+
+    WorldPackets::Traits::TraitConfig traitConfig;
+    traitConfig.Type = TraitConfigType::Combat;
+    traitConfig.ChrSpecializationID = primary->ChrSpecializationID;
+    traitConfig.CombatConfigFlags = TraitCombatConfigFlags::SecundarySpec;
+    traitConfig.LocalIdentifier = localIdentifier;
+    traitConfig.Name = *primary->Name;
+    CreateTraitConfig(traitConfig);
+
+    SendTalentsInfoData();
+    return true;
+}
+
+// Classic 1.60 dual spec: "Activate Primary/Secondary Spec" (spells 63645/63644). Swaps the applied talents, the action bars
+// (stored per talent group) and tells the client the new active group.
+bool Player::ActivateClassicSpecGroup(bool secondary)
+{
+    UF::TraitConfig const* target = GetClassicSpecGroupConfig(secondary);
+    if (!target)
+        return false;
+
+    int32 targetId = target->ID;
+    int32 currentId = *m_activePlayerData->ActiveCombatTraitConfigID;
+    if (targetId == currentId)
+        return true;
+
+    CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
+    _SaveActions(trans);
+    CharacterDatabase.CommitTransaction(trans);
+
+    ApplyTraitConfig(currentId, false);
+    SetActiveTalentGroup(secondary ? 1 : 0);
+    SetActiveCombatTraitConfigID(targetId);
+    ApplyTraitConfig(targetId, true);
+
+    StartLoadingActionButtons([this]() { SendTalentsInfoData(); });
+    return true;
 }
 
 void Player::SendEquipmentSetList()
@@ -28494,6 +28695,15 @@ void Player::_LoadTraits(PreparedQueryResult configsResult, PreparedQueryResult 
             && traitConfig.ChrSpecializationID == int32(GetPrimarySpecialization())
             && traitConfig.CombatConfigFlags & AsUnderlyingType(TraitCombatConfigFlags::ActiveForSpec);
     }).second;
+
+    // Classic 1.60 dual spec: talent group 1 is the config flagged SecondarySpec
+    if (GetActiveTalentGroup() == 1)
+    {
+        if (UF::TraitConfig const* secondaryConfig = GetClassicSpecGroupConfig(true))
+            activeTraitConfig = secondaryConfig;
+        else
+            SetActiveTalentGroup(0);
+    }
 
     if (activeTraitConfig)
     {
@@ -30611,7 +30821,7 @@ void Player::UpdateAverageItemLevelTotal()
     ForEachItem(ItemSearchLocation::Everywhere, [this, &bestItemLevels, &sum](Item* item)
     {
         ItemTemplate const* itemTemplate = item->GetTemplate();
-        if (itemTemplate && itemTemplate->GetInventoryType() < INVTYPE_PROFESSION_TOOL)
+        if (itemTemplate && itemTemplate->GetInventoryType() < INVTYPE_RANGEDRIGHT)
         {
             uint16 dest;
             if (item->IsEquipped())

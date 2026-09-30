@@ -1459,7 +1459,7 @@ struct CurrencyTypesEntry
     int32 MaxQtyWorldStateID;
     uint32 RechargingAmountPerCycle;
     uint32 RechargingCycleDurationMS;
-    float WarbondTransferPercentage;
+    float AccountTransferPercentage;
     int32 MaxQtyCurveID;
     uint8 OrderIndex;
     float RecraftReagentCountPercentage;
@@ -1484,10 +1484,10 @@ struct CurrencyTypesEntry
     bool HasMaxQuantity(bool onLoad = false, bool onUpdateVersion = false) const
     {
         if (onLoad && GetFlags().HasFlag(CurrencyTypesFlags::IgnoreMaxQtyOnLoad))
-           return false;
+            return false;
 
         if (onUpdateVersion && GetFlags().HasFlag(CurrencyTypesFlags::UpdateVersionIgnoreMax))
-           return false;
+            return false;
 
         return MaxQty || MaxQtyWorldStateID || GetFlags().HasFlag(CurrencyTypesFlags::DynamicMaximum);
     }
@@ -1692,12 +1692,12 @@ struct FactionEntry
     std::array<uint16, 4> ReputationFlags;
     std::array<int32, 4> ReputationBase;
     std::array<int32, 4> ReputationMax;
-    std::array<float, 2> ParentFactionMod;
-    std::array<uint8, 2> ParentFactionCap;
-    Trinity::RaceMask<int32, 2> ReputationRaceMasks0;
-    Trinity::RaceMask<int32, 2> ReputationRaceMasks1;
-    Trinity::RaceMask<int32, 2> ReputationRaceMasks2;
-    Trinity::RaceMask<int32, 2> ReputationRaceMasks3;
+    std::array<float, 2> ParentFactionMod;            // Faction outputs rep * ParentFactionModOut as spillover reputation
+    std::array<uint8, 2> ParentFactionCap;            // The highest rank the faction will profit from incoming spillover
+    Trinity::RaceMask<int32, 2> ReputationRaceMask1;
+    Trinity::RaceMask<int32, 2> ReputationRaceMask2;
+    Trinity::RaceMask<int32, 2> ReputationRaceMask3;
+    Trinity::RaceMask<int32, 2> ReputationRaceMask4;
 
     // helpers
     bool CanHaveReputation() const
@@ -1752,7 +1752,7 @@ struct FactionTemplateEntry
         }
         return (EnemyGroup & entry->FactionGroup) != 0;
     }
-    bool IsHostileToPlayers() const { return (EnemyGroup & FACTION_MASK_PLAYER) !=0; }
+    bool IsHostileToPlayers() const { return (EnemyGroup & FACTION_MASK_PLAYER) != 0; }
     bool IsNeutralToAll() const
     {
         for (int i = 0; i < MAX_FACTION_RELATIONS; ++i)
@@ -2084,7 +2084,7 @@ struct GlobalCurveEntry
     uint32 ID;
     int32 CurveID;
     int32 Type;
-    int32 SubType;
+    int32 Subtype;
 };
 
 struct GlyphBindableSpellEntry
@@ -2232,12 +2232,12 @@ struct ItemEntry
     int8 InventoryType;
     uint8 SheatheType;
     int32 ItemPetFoodID;
-    int8 SoundOverridesubclassID;
+    int8 SoundOverrideSubclassID;
     int32 IconFileDataID;
     uint32 ItemGroupSoundsID;
     int32 ContentTuningID;
     int32 ModifiedCraftingReagentItemID;
-    uint8 AmmunitionType;
+    uint8 Unknown1200;                                              // AmmunitionType in 1.60.x Classic
     int32 CraftingQualityID;
     int32 ItemSquishEraID;
     float RecraftReagentCountPercentage;
@@ -2627,7 +2627,7 @@ struct ItemSparseEntry
     float PriceVariance;
     float PriceRandomValue;
     std::array<int32, MAX_ITEM_PROTO_FLAGS> Flags;
-    int32 OppositeFactionItemID;
+    int32 FactionRelated;
     int32 ModifiedCraftingReagentItemID;
     int32 ContentTuningID;
     int32 PlayerLevelToItemLevelCurveID;
@@ -2638,7 +2638,7 @@ struct ItemSparseEntry
     uint16 RequiredTransmogHoliday;
     uint16 RequiredHoliday;
     uint16 GemProperties;
-    uint16 SocketMatchenchantmentID;
+    uint16 SocketMatchEnchantmentId;
     uint16 TotemCategoryID;
     uint16 InstanceBound;
     std::array<uint16, MAX_ITEM_PROTO_ZONES> ZoneBound;
@@ -2659,7 +2659,7 @@ struct ItemSparseEntry
     uint8 Material;
     uint8 PageMaterialID;
     uint8 Bonding;
-    uint8 DamageType;
+    uint8 DamageDamageType;
     uint8 ContainerSlots;
     uint8 RequiredPVPMedal;
     int8 RequiredPVPRank;
@@ -2961,21 +2961,21 @@ struct MapEntry
     {
         switch (ID)
         {
-            case 0:
-            case 1:
-            case 530:
-            case 571:
-            case 870:
-            case 1116:
-            case 1220:
-            case 1642:
-            case 1643:
-            case 2222:
-            case 2444:
-            case 2601:
-                return true;
-            default:
-                return false;
+        case 0:
+        case 1:
+        case 530:
+        case 571:
+        case 870:
+        case 1116:
+        case 1220:
+        case 1642:
+        case 1643:
+        case 2222:
+        case 2444:
+        case 2601:
+            return true;
+        default:
+            return false;
         }
     }
 
@@ -3369,7 +3369,7 @@ struct PlayerDataElementAccountEntry
     int32 StorageIndex;
     int32 Type;
     int32 Unknown1125;
-    int32 Unknown1215;
+    int32 Field_12_1_5_69594_004;
 
     PlayerDataElementType GetType() const { return static_cast<PlayerDataElementType>(Type); }
 };
@@ -3380,7 +3380,7 @@ struct PlayerDataElementCharacterEntry
     int32 StorageIndex;
     int32 Type;
     int32 Unknown1125;
-    int32 Unknown1215;
+    int32 Field_12_1_5_69594_004;
 
     PlayerDataElementType GetType() const { return static_cast<PlayerDataElementType>(Type); }
 };
@@ -3711,7 +3711,7 @@ struct SkillLineAbilityEntry
     LocalizedString AbilityVerb;
     LocalizedString AbilityAllVerb;
     uint32 ID;
-    int16 SkillLine;
+    uint16 SkillLine;
     int32 Spell;
     int16 MinSkillLineRank;
     int32 ClassMask;
@@ -3725,7 +3725,7 @@ struct SkillLineAbilityEntry
     int16 TradeSkillCategoryID;
     int16 SkillupSkillLineID;
     std::array<int32, 2> Field_5_5_4_67090_014;
-    Trinity::RaceMask<int32, 2> RaceMasks;
+    Trinity::RaceMask<int32, 2> RaceMask;
 
     SkillLineAbilityAcquireMethod GetAcquireMethod() const { return static_cast<SkillLineAbilityAcquireMethod>(AcquireMethod); }
     EnumFlag<SkillLineAbilityFlags> GetFlags() const { return static_cast<SkillLineAbilityFlags>(Flags); }
@@ -3990,24 +3990,24 @@ struct SpellItemEnchantmentEntry
     LocalizedString Name;
     LocalizedString HordeName;
     int32 Duration;
-    int32 Charges;
-    std::array<int32, MAX_ITEM_ENCHANTMENT_EFFECTS> Effect;
+    uint32 Charges;
+    std::array<uint32, MAX_ITEM_ENCHANTMENT_EFFECTS> Effect;
     std::array<int32, MAX_ITEM_ENCHANTMENT_EFFECTS> EffectPointsMin;
     std::array<uint32, MAX_ITEM_ENCHANTMENT_EFFECTS> EffectArg;
     int32 Flags;
     std::array<float, MAX_ITEM_ENCHANTMENT_EFFECTS> EffectScalingPoints;
     int32 ScalingClass;
     int32 ScalingClassRestricted;
-    int32 Field_12_1_5_69594_011;
-    int32 RequiredSkillID;
-    int32 RequiredSkillRank;
-    int32 MinLevel;
-    int32 MaxLevel;
-    int32 IconFileDataID;
-    int32 ItemLevelMin;
-    int32 ItemLevelMax;
-    int32 TransmogUseConditionID;
-    int32 TransmogCost;
+    uint32 ConditionID;                                             // Field_12_1_5_69594_011 in 1.60.x Classic - sits where Condition_ID was in 1.15 layouts, all 0 in build 70009 data
+    uint32 RequiredSkillID;
+    uint32 RequiredSkillRank;
+    uint32 MinLevel;
+    uint32 MaxLevel;
+    uint32 IconFileDataID;
+    int32 MinItemLevel;
+    int32 MaxItemLevel;
+    uint32 TransmogUseConditionID;
+    uint32 TransmogCost;
     int32 Field_12_1_5_69594_021;
     uint16 ItemVisual;
     uint16 ItemLevel;
@@ -4105,7 +4105,7 @@ struct SpellPowerEntry
     int8 PowerType;
     int32 RequiredAuraSpellID;
     uint32 OptionalCost;                                            // Spell uses [ManaCost, ManaCost+ManaCostAdditional] power - affects tooltip parsing as multiplier on SpellEffectEntry::EffectPointsPerResource
-                                                                   //   only SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL, SPELL_EFFECT_WEAPON_PERCENT_DAMAGE, SPELL_EFFECT_WEAPON_DAMAGE, SPELL_EFFECT_NORMALIZED_WEAPON_DMG
+    //   only SPELL_EFFECT_WEAPON_DAMAGE_NOSCHOOL, SPELL_EFFECT_WEAPON_PERCENT_DAMAGE, SPELL_EFFECT_WEAPON_DAMAGE, SPELL_EFFECT_NORMALIZED_WEAPON_DMG
     uint32 SpellID;
 };
 
@@ -4130,7 +4130,7 @@ struct SpellProcsPerMinuteModEntry
     int32 Param;
     float Coeff;
     int32 Field_12_1_5_69594_003;
-    int32 SpellProcsPerMinuteID;
+    uint32 SpellProcsPerMinuteID;
 };
 
 struct SpellRadiusEntry
@@ -4309,12 +4309,12 @@ struct SpellVisualMissileEntry
     uint32 AnimKitID;
     int32 ClutterLevel;
     int32 DecayTimeAfterImpact;
-    uint16 Field_12_1_5_69594_017;
+    uint16 Unused1100;
     int32 Field_12_1_5_69594_018;
     int32 Field_12_1_5_69594_019;
     int32 Field_12_1_5_69594_020;
     int32 Field_12_1_5_69594_021;
-    int32 SpellVisualMissileSetID;
+    uint32 SpellVisualMissileSetID;
 };
 
 struct SpellXSpellVisualEntry
@@ -4405,7 +4405,7 @@ struct TaxiNodesEntry
             || ID == 2732   // [HIDDEN] 9.2 Resonant Peaks - Teleport Network - Hidden Hub (Connects all Nodes to each other without unique paths)
             || ID == 2835   // [Hidden] 10.0 Travel Network - Destination Input
             || ID == 2843   // [Hidden] 10.0 Travel Network - Destination Output
-        ;
+            ;
     }
 };
 
@@ -4514,7 +4514,7 @@ struct TraitCurrencySourceEntry
 {
     LocalizedString Requirement;
     uint32 ID;
-    int32 TraitCurrencyID;
+    uint32 TraitCurrencyID;
     int32 Amount;
     int32 QuestID;
     int32 AchievementID;

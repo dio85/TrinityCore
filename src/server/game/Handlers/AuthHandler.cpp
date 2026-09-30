@@ -114,6 +114,7 @@ void WorldSession::SendFeatureSystemStatusGlueScreen()
     features.MaxCharactersOnThisRealm = sWorld->getIntConfig(CONFIG_CHARACTERS_PER_REALM);
     features.MinimumExpansionLevel = EXPANSION_CLASSIC;
     features.MaximumExpansionLevel = sWorld->getIntConfig(CONFIG_EXPANSION);
+    features.ContentSetID = int32(sRealmList->GetCurrentRealmContentSet()); // Classic 1.60: season of this realm's ruleset
 
     features.EuropaTicketSystemStatus.emplace();
     features.EuropaTicketSystemStatus->ThrottleState.MaxTries = 10;
@@ -144,13 +145,18 @@ void WorldSession::SendFeatureSystemStatusGlueScreen()
 
     WorldPackets::System::MirrorVarSingle vars[] =
     {
+        { "performHousingExpansionCheckClient"sv, "1"sv },
         { "raidLockoutExtendEnabled"sv, "1"sv },
         { "sellAllJunkEnabled"sv, "1"sv },
         { "bypassItemLevelScalingCode"sv, "0"sv },
-        { "shop2Enabled"sv, "0"sv },
-        { "bpayStoreEnable"sv, "0"sv },
+        // Classic 1.60: custom shop - the client's shop2 REST calls go to classic_re/shop_server.py
+        { "shop2Enabled"sv, "1"sv },
+        { "shop2HostUrlRequests"sv, "https://trinity.actual.battle.net:8443"sv },
+        { "shop2HostUrlAuth"sv, "https://trinity.actual.battle.net:8443"sv },
+        { "shop2UseConnectedRealmGameServiceRegionId"sv, "0"sv },   // realm region is the fake 70 of the Classic super realm; use the account region (1)
+        { "bpayStoreEnable"sv, "1"sv },
         { "recentAlliesEnabledClient"sv, "0"sv },
-        { "browserEnabled"sv, "0"sv },
+        { "browserEnabled"sv, "1"sv },         // Classic 1.60: support and shop windows use the in-game browser
         { "housingEnableCreateGuildNeighborhood"sv, "0"sv },
         { "housingEnableDeleteHouse"sv, "0"sv },
         { "housingServiceEnabled"sv, "0"sv },
@@ -158,6 +164,9 @@ void WorldSession::SendFeatureSystemStatusGlueScreen()
         { "housingEnableCreateCharterNeighborhood"sv, "0"sv },
         { "housingEnableBuyHouse"sv, "0"sv },
         { "housingMarketEnabled"sv, "0"sv },
+        { "performAdventureGuidExpansionCheckClient"sv, "1"sv},
+        { "adventureGuidEnabled"sv, "0"sv },
+        { "legacyEnabled"sv, "1"sv },
     };
 
     WorldPackets::System::MirrorVars variables;

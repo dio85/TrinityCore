@@ -25,7 +25,12 @@
 #include "RealmList.h"
 #include "RealmList.pb.h"
 #include "Session.h"
+#include "StringFormat.h"   // LuaSol
+#include "Session.h"
 #include "Types.h"
+#include <charconv>   // LuaSol
+#include <ctime>   // LuaSol
+#include <unordered_set>   // LuaSol
 #include <zlib.h>
 
 namespace Battlenet::Services
@@ -81,6 +86,31 @@ uint32 GameUtilities::HandleClientRequest(Session* session,
         return ERROR_RPC_MALFORMED_REQUEST;
     }
 
+    // LuaSol: log the command name and all params so we can follow the login flow
+    {
+        std::string paramLog;
+        for (auto const& [name, value] : params)
+        {
+            paramLog += name;
+            paramLog += '=';
+            std::visit([&paramLog](auto const& v)
+            {
+                using T = std::decay_t<decltype(v)>;
+                if constexpr (std::is_same_v<T, std::vector<uint8>>)
+                    paramLog += Trinity::StringFormat("<{} bytes>", v.size());
+                else if constexpr (std::is_same_v<T, std::string>)
+                    paramLog += v;
+                else if constexpr (std::is_same_v<T, bool>)
+                    paramLog += v ? "true" : "false";
+                else
+                    paramLog += std::to_string(v);
+            }, value);
+            paramLog += ' ';
+        }
+        TC_LOG_INFO("session.rpc", "{} ClientRequest: {} params: {}", session->GetClientInfo(), command->first, paramLog);
+    }
+    // LuaSol: end
+
     switch (Trinity::HashFnv1a<>::GetHash(command->first))
     {
         case Trinity::HashFnv1a<>::GetHash("Command_LastCharPlayedRequest_v1"sv):
@@ -93,6 +123,10 @@ uint32 GameUtilities::HandleClientRequest(Session* session,
             return JoinRealm(session, params, responseValues);
         case Trinity::HashFnv1a<>::GetHash("Command_FetchBleepProxiesRequest_v1"sv):
             return GetBleepProxies(session, params, responseValues);
+        // LuaSol: newer clients request the super district list during login; answer with a valid dummy
+        case Trinity::HashFnv1a<>::GetHash("Command_SuperDistrictListRequest_v1"sv):
+            return GetSuperDistrictList(session, params, responseValues);
+        // LuaSol: end
         default:
             break;
     }
@@ -106,11 +140,17 @@ uint32 GameUtilities::HandleGetAllValuesForAttribute(Session const* session, std
     if (!session->IsAuthed())
         return ERROR_DENIED;
 
+    TC_LOG_INFO("session.rpc", "{} GetAllValuesForAttribute: {}", session->GetClientInfo(), command);   // LuaSol
+
     switch (Trinity::HashFnv1a<>::GetHash(command))
     {
         case Trinity::HashFnv1a<>::GetHash("Command_RealmListRequest_v1"sv):
+        case Trinity::HashFnv1a<>::GetHash("Command_SuperDistrictListRequest_v1"sv):    // LuaSol
             for (std::string& subRegion : sRealmList->GetSubRegions())
+            {
+                TC_LOG_INFO("session.rpc", "{} GetAllValuesForAttribute: {} -> subRegion {}", session->GetClientInfo(), command, subRegion);   // LuaSol
                 responseValues.emplace_back(std::move(subRegion));
+            }
             return ERROR_OK;
         default:
             break;
@@ -128,7 +168,25 @@ uint32 GameUtilities::GetLastCharPlayed(Session const* session,
     if (!subRegion || !std::holds_alternative<std::string>(*subRegion))
         return ERROR_UTIL_SERVER_UNKNOWN_REALM;
 
-    if (LastPlayedCharacterInfo const* lastPlayerChar = session->GetLastPlayedCharacter(std::get<std::string>(*subRegion)))
+    // Classic (1.60+): with a ruleset picked (Param_ContentSetIDFilter = its season) the answer must be that ruleset's realm, and the last
+   // character played there. The client always asks for the super realm sub-region (70-1-70), so look the character up by that realm.
+    LastPlayedCharacterInfo const* lastPlayerChar = session->GetLastPlayedCharacter(std::get<std::string>(*subRegion));
+    if (Variant const* filter = FindParamValue(params, "Param_ContentSetIDFilter"))
+    {
+        int64 filterContentSet = std::visit([]<typename T>(T const& v) -> int64
+        {
+            if constexpr (std::is_arithmetic_v<T>)
+                return int64(v);
+            else
+                return -1;
+        }, * filter);
+
+        if (filterContentSet >= 0)
+            if (Optional<Battlenet::RealmHandle> rulesetRealm = sRealmList->GetRealmIdForContentSet(uint32(filterContentSet)))
+                lastPlayerChar = session->GetLastPlayedCharacter(rulesetRealm->GetSubRegionAddress());
+    }
+
+    if (lastPlayerChar)
     {
         std::string realmEntryJson = sRealmList->GetRealmEntryJSON(lastPlayerChar->RealmId, session->GetBuild(), session->GetGameAccountInfo()->SecurityLevel);
         if (realmEntryJson.empty())
@@ -147,6 +205,37 @@ uint32 GameUtilities::GetLastCharPlayed(Session const* session,
         responseValues.emplace_back("Param_CharacterGUID"sv, std::move(guidData));
         responseValues.emplace_back("Param_LastPlayedTime"sv, int64(lastPlayerChar->LastPlayedTime));
         responseValues.emplace_back("Param_UtilityInfo"sv, std::move(utilityInfoJson));
+    }
+    else if (Variant const* contentSetFilter = FindParamValue(params, "Param_ContentSetIDFilter"))
+    {
+        // Classic (1.60+) clients pick a realm for the selected super district (gameplay ruleset) this way:
+        // Command_LastCharPlayedRequest_v1 + Param_ContentSetIDFilter = Cfg_SuperDistrict.ContentSetID. Hand them our realm.
+        int64 contentSetId = std::visit([]<typename T>(T const& v) -> int64
+        {
+            if constexpr (std::is_arithmetic_v<T>)
+                return int64(v);
+            else
+                return -1;
+        }, * contentSetFilter);
+
+        Optional<Battlenet::RealmHandle> realmId = contentSetId >= 0 ? sRealmList->GetRealmIdForContentSet(uint32(contentSetId)) : Optional<Battlenet::RealmHandle>();
+        if (!realmId)
+            realmId = sRealmList->GetFirstRealmId();   // no realm for that ruleset: fall back to the first one
+        if (contentSetId >= 0 && realmId)
+        {
+            std::string realmEntryJson = sRealmList->GetRealmEntryJSON(*realmId, session->GetBuild(), session->GetGameAccountInfo()->SecurityLevel);
+            TC_LOG_DEBUG("session.rpc", "{} LastCharPlayed for content set {} -> realm entry {}", session->GetClientInfo(), contentSetId, realmEntryJson);
+            if (!realmEntryJson.empty())
+            {
+                ::JSON::RealmList::UtilityInfo utilityInfo;
+                utilityInfo.set_realmpermissions(0x200);
+
+                // the client requires Param_LastPlayedTime (int) right after Param_RealmEntry, otherwise it discards the realm
+                responseValues.emplace_back("Param_RealmEntry"sv, CompressJson("JamJSONRealmEntry:" + realmEntryJson));
+                responseValues.emplace_back("Param_LastPlayedTime"sv, int64(time(nullptr)));
+                responseValues.emplace_back("Param_UtilityInfo"sv, CompressJson("JSONUtilityInfo:" + ::JSON::Serialize(utilityInfo)));
+            }
+        }
     }
 
     return ERROR_OK;
@@ -283,6 +372,33 @@ uint32 GameUtilities::GetBleepProxies(Session const* /*session*/,
 
     return ERROR_OK;
 }
+
+// LuaSol: Command_SuperDistrictListRequest_v1 handler for newer clients;
+// the client renders its gameplay-style picker from Cfg_SuperDistrict.db2 rows,
+// so the response only needs to carry the district ids known to the client.
+// Wire format (reversed from JamJSONSuperDistrictEntry in the client binary):
+// JSONSuperDistrictList:{"superDistricts":[{"superDistrictID":<id>,"disallowLogin":false,"holdDownUntilTime":0}, ...]}
+uint32 GameUtilities::GetSuperDistrictList(Session const* session,
+    std::vector<std::pair<std::string_view, Variant>>& /*params*/,
+    std::vector<std::pair<std::string_view, Variant>>& responseValues)
+{
+    // LuaSol: only advertise districts that actually have realms behind them ?
+    // the client resolves each district's join target by superDistrictID, so
+    // offering a mode with no backing realm leads to NO_AVAILABLE_REALMS
+    std::string superDistricts = sRealmList->GetClassicSuperDistrictListEntries();
+
+    std::string json = Trinity::StringFormat(R"(JSONSuperDistrictList:{{"superDistricts":[{}]}})", superDistricts);
+    TC_LOG_DEBUG("session.rpc", "{} Param_SuperDistrictList = {}", session->GetClientInfo(), json);
+
+    std::vector<uint8> superDistrictListJson = CompressJson(json);
+    if (superDistrictListJson.empty())
+        return ERROR_UTIL_SERVER_FAILED_TO_SERIALIZE_RESPONSE;
+
+    responseValues.emplace_back("Param_SuperDistrictList"sv, std::move(superDistrictListJson));
+
+    return ERROR_OK;
+}
+// LuaSol: end
 }
 
 namespace V1
@@ -445,6 +561,15 @@ uint32 GameUtilities::HandleProcessTask(game_utilities::v2::client::ProcessTaskR
     }
 
     uint32 result = Shared::GameUtilities::HandleClientRequest(_session, params, responseValues);
+
+    // LuaSol: log which response attributes are sent back so we can verify the payload
+    {
+        std::string attrLog;
+        for (auto const& [name, value] : responseValues)
+            attrLog += Trinity::StringFormat("{} ", name);
+        TC_LOG_INFO("session.rpc", "{} ClientRequest result={} attrs: {}", _session->GetClientInfo(), result, attrLog);
+    }
+    // LuaSol: end
 
     for (auto&& [name, value] : responseValues)
     {

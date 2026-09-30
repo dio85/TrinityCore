@@ -5110,6 +5110,14 @@ void Spell::EffectActivateSpec()
 
     Player* player = unitTarget->ToPlayer();
     uint32 specID = m_misc.SpecializationId;
+
+    // Classic 1.60 dual spec (checked in Spell::CheckCast)
+    if (m_spellInfo->Id == 63644 || m_spellInfo->Id == 63645)
+    {
+        player->ActivateClassicSpecGroup(m_spellInfo->Id == 63644);
+        return;
+    }
+
     ChrSpecializationEntry const* spec = sChrSpecializationStore.AssertEntry(specID);
 
     // Safety checks done in Spell::CheckCast

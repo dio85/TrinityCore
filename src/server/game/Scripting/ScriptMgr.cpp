@@ -1301,6 +1301,10 @@ ScriptMgr* ScriptMgr::instance()
 
 void ScriptMgr::Initialize()
 {
+    // Not present in Classic (1.60+) client data; only used as a visual when hotswapping scripts
+    if (!sSpellMgr->GetSpellInfo(SPELL_HOTSWAP_VISUAL_SPELL_EFFECT, DIFFICULTY_NONE))
+        TC_LOG_WARN("server.loading", "Reload hotswap spell effect {} for creatures isn't valid!", uint32(SPELL_HOTSWAP_VISUAL_SPELL_EFFECT));
+
     uint32 oldMSTime = getMSTime();
 
     LoadDatabase();

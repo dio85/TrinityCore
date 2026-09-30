@@ -3197,10 +3197,6 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
             break;
         case ModifierTreeType::IsTournamentRealm: // 229
             return false;
-        case ModifierTreeType::PlayerCanAccessAlliedRaces: // 230
-            if (!referencePlayer->GetSession()->CanAccessAlliedRaces())
-                return false;
-            break;
         case ModifierTreeType::GroupMemberCountWithAchievementEqualOrLessThan: // 231
         {
             if (Group const* group = referencePlayer->GetGroup())
@@ -3528,10 +3524,6 @@ bool CriteriaHandler::ModifierSatisfied(ModifierTreeEntry const* modifier, uint6
                 return false;
             break;
         }
-        case ModifierTreeType::PlayerCanAccessShadowlandsPrepurchaseContent: // 281
-            if (referencePlayer->GetSession()->GetAccountExpansion() < EXPANSION_SHADOWLANDS)
-                return false;
-            break;
         case ModifierTreeType::PlayerHasEntitlement: // 282 NYI
         case ModifierTreeType::PlayerIsInPartySyncGroup: // 283 NYI
         case ModifierTreeType::QuestHasPartySyncRewards: // 284 NYI
