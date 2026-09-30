@@ -11862,6 +11862,13 @@ void Player::SetVisibleItemSlot(uint8 slot, Item const* item)
         else if (slot == EQUIPMENT_SLOT_OFFHAND)
             SetUpdateFieldValue(transmogMetadata.ModifyValue(&UF::TransmogOutfitMetadata::StampedOptionOffHand), AsUnderlyingType(transmogSlotOption));
     };
+
+    if (item)
+        setVisibleItemSlot(slot, item->GetVisibleEntry(this), item->GetVisibleSecondaryModifiedAppearanceId(this), 0,
+            item->GetVisibleAppearanceModId(this), item->GetVisibleItemVisual(this), item->GetVisibleModifiedAppearanceId(this),
+            item->GetTemplate()->GetWeaponTransmogOutfitSlotOption(), TransmogOutfitSlotOptionSheatheCategory::Default, false, false);
+    else
+        setVisibleItemSlot(slot, 0, 0, 0, 0, 0, 0, TransmogOutfitSlotOption::None, TransmogOutfitSlotOptionSheatheCategory::Default, false, false);
 }
 
 void Player::VisualizeItem(uint8 slot, Item* pItem)

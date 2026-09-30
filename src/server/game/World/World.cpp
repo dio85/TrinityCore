@@ -1203,8 +1203,9 @@ void World::LoadConfigSettings(bool reload)
     _gameRules =
     {
         { .Rule = ::GameRule::TransmogEnabled, .Value = true },
-        { .Rule = ::GameRule::HousingEnabled, .Value = false },
-        { .Rule = ::GameRule::EjJourneysDisabled, .Value = true }
+        {.Rule = ::GameRule::EncounterJournalDisabled, .Value = true },
+        {.Rule = ::GameRule::FinderPanelDisabled, .Value = true },
+        {.Rule = ::GameRule::HousingDashboardDisabled, .Value = true }
     };
 
     // Classic 1.60 Hardcore ruleset realm: C_GameRules.IsHardcoreActive() drives the client's Hardcore UI

@@ -1597,29 +1597,6 @@ void Item::SetGem(uint16 slot, ItemDynamicFieldGems const* gem, uint32 gemScalin
 
                 _bonusData.GemRelicType[slot] = gemBonus.RelicType;
 
-                for (uint32 i = 0; i < MAX_ITEM_ENCHANTMENT_EFFECTS; ++i)
-                {
-                    switch (gemEnchant->Effect[i])
-                    {
-                        case ITEM_ENCHANTMENT_TYPE_BONUS_LIST_ID:
-                        {
-                            for (ItemBonusEntry const* itemBonus : ItemBonusMgr::GetItemBonuses(gemEnchant->EffectArg[i]))
-                                if (itemBonus->Type == ITEM_BONUS_ITEM_LEVEL)
-                                    _bonusData.GemItemLevelBonus[slot] += itemBonus->Value[0];
-                            break;
-                        }
-                        case ITEM_ENCHANTMENT_TYPE_BONUS_LIST_CURVE:
-                        {
-                            if (uint32 bonusListId = ItemBonusMgr::GetItemBonusListForItemLevelDelta(int16(sDB2Manager.GetCurveValueAt(CURVE_ID_ARTIFACT_RELIC_ITEM_LEVEL_BONUS, gemBaseItemLevel + gemBonus.ItemLevelBonus))))
-                                for (ItemBonusEntry const* itemBonus : ItemBonusMgr::GetItemBonuses(bonusListId))
-                                    if (itemBonus->Type == ITEM_BONUS_ITEM_LEVEL)
-                                        _bonusData.GemItemLevelBonus[slot] += itemBonus->Value[0];
-                            break;
-                        }
-                        default:
-                            break;
-                    }
-                }
             }
         }
     }
@@ -2042,12 +2019,6 @@ int32 const ItemTransmogrificationSlots[MAX_INVTYPE] =
     EQUIPMENT_SLOT_MAINHAND,                                // INVTYPE_RANGEDRIGHT
     -1,                                                     // INVTYPE_QUIVER
     -1,                                                     // INVTYPE_RELIC
-    -1,                                                     // INVTYPE_PROFESSION_TOOL
-    -1,                                                     // INVTYPE_PROFESSION_GEAR
-    -1,                                                     // INVTYPE_EQUIPABLE_SPELL_OFFENSIVE
-    -1,                                                     // INVTYPE_EQUIPABLE_SPELL_UTILITY
-    -1,                                                     // INVTYPE_EQUIPABLE_SPELL_DEFENSIVE
-    -1                                                      // INVTYPE_EQUIPABLE_SPELL_MOBILITY
 };
 
 bool Item::CanTransmogrifyItemWithItem(Item const* item, ItemModifiedAppearanceEntry const* itemModifiedAppearance)
@@ -3019,9 +2990,6 @@ void BonusData::AddBonus(uint32 type, std::array<int32, 4> const& values)
 {
     switch (type)
     {
-        case ITEM_BONUS_ITEM_LEVEL:
-            ItemLevelBonus += values[0];
-            break;
         case ITEM_BONUS_STAT:
         {
             uint32 statIndex = 0;
@@ -3036,49 +3004,12 @@ void BonusData::AddBonus(uint32 type, std::array<int32, 4> const& values)
             }
             break;
         }
-        case ITEM_BONUS_QUALITY:
-            if (!_state.HasQualityBonus)
-            {
-                Quality = static_cast<uint32>(values[0]);
-                _state.HasQualityBonus = true;
-            }
-            else if (Quality < static_cast<uint32>(values[0]))
-                Quality = static_cast<uint32>(values[0]);
-            break;
         case ITEM_BONUS_SUFFIX:
             if (values[1] < _state.SuffixPriority)
             {
                 Suffix = static_cast<uint32>(values[0]);
                 _state.SuffixPriority = values[1];
             }
-            break;
-        case ITEM_BONUS_SOCKET:
-        {
-            uint32 socketCount = values[0];
-            for (uint32 i = 0; i < MAX_ITEM_PROTO_SOCKETS && socketCount; ++i)
-            {
-                if (!SocketColor[i])
-                {
-                    SocketColor[i] = values[1];
-                    --socketCount;
-                }
-            }
-            break;
-        }
-        case ITEM_BONUS_APPEARANCE:
-            if (values[1] < _state.AppearanceModPriority)
-            {
-                AppearanceModID = static_cast<uint32>(values[0]);
-                _state.AppearanceModPriority = values[1];
-            }
-            break;
-        case ITEM_BONUS_REQUIRED_LEVEL:
-            RequiredLevel += values[0];
-            break;
-        case ITEM_BONUS_REPAIR_COST_MULTIPLIER:
-            RepairCostMultiplier *= static_cast<float>(values[0]) * 0.01f;
-            break;
-        case ITEM_BONUS_SCALING_STAT_DISTRIBUTION:
         case ITEM_BONUS_SCALING_STAT_DISTRIBUTION_FIXED:
             if (values[1] < _state.ScalingStatDistributionPriority)
             {
@@ -3087,35 +3018,6 @@ void BonusData::AddBonus(uint32 type, std::array<int32, 4> const& values)
                 _state.ScalingStatDistributionPriority = values[1];
                 HasFixedLevel = type == ITEM_BONUS_SCALING_STAT_DISTRIBUTION_FIXED;
             }
-            break;
-        case ITEM_BONUS_DISENCHANT_LOOT_ID:
-            if (values[1] < _state.DisenchantLootPriority)
-            {
-                DisenchantLootId = values[0];
-                _state.DisenchantLootPriority = values[1];
-            }
-            break;
-        case ITEM_BONUS_BONDING:
-            Bonding = ItemBondingType(values[0]);
-            break;
-        case ITEM_BONUS_RELIC_TYPE:
-            RelicType = values[0];
-            break;
-        case ITEM_BONUS_OVERRIDE_REQUIRED_LEVEL:
-            RequiredLevelOverride = values[0];
-            break;
-        case ITEM_BONUS_AZERITE_TIER_UNLOCK_SET:
-            if (values[1] < _state.AzeriteTierUnlockSetPriority)
-            {
-                AzeriteTierUnlockSetId = values[0];
-                _state.AzeriteTierUnlockSetPriority = values[1];
-            }
-            break;
-        case ITEM_BONUS_OVERRIDE_CAN_DISENCHANT:
-            CanDisenchant = values[0] != 0;
-            break;
-        case ITEM_BONUS_OVERRIDE_CAN_SCRAP:
-            CanScrap = values[0] != 0;
             break;
         case ITEM_BONUS_ITEM_EFFECT_ID:
             if (ItemEffectEntry const* itemEffect = sItemEffectStore.LookupEntry(values[0]))
@@ -3137,129 +3039,11 @@ void BonusData::AddBonus(uint32 type, std::array<int32, 4> const& values)
                 _state.HasItemLimitCategory = true;
             }
             break;
-        case ITEM_BONUS_PVP_ITEM_LEVEL_INCREMENT:
-            PvpItemLevelBonus += values[0];
-            break;
-        case ITEM_BONUS_OVERRIDE_CAN_SALVAGE:
-            CanSalvage = values[0] != 0;
-            break;
-        case ITEM_BONUS_OVERRIDE_CAN_RECRAFT:
-            CanRecraft = values[0] != 0;
-            break;
-        case ITEM_BONUS_ITEM_LEVEL_BASE:
-            if (values[1] < _state.ItemLevelPriority)
-            {
-                ItemLevel = values[0];
-                _state.ItemLevelPriority = values[1];
-            }
-            break;
-        case ITEM_BONUS_PVP_ITEM_LEVEL_BASE:
-            if (values[1] < _state.PvpItemLevelPriority)
-            {
-                PvpItemLevel = values[0];
-                _state.PvpItemLevelPriority = values[1];
-            }
-            break;
-        case ITEM_BONUS_OVERRIDE_CANNOT_TRADE_BOP:
-            CannotTradeBindOnPickup = values[0] != 0;
-            break;
         case ITEM_BONUS_BONDING_WITH_PRIORITY:
             if (values[1] < _state.BondingPriority)
             {
                 Bonding = static_cast<ItemBondingType>(values[0]);
                 _state.BondingPriority = values[1];
-            }
-            break;
-        case ITEM_BONUS_ITEM_OFFSET_CURVE:
-            if (values[3] < _state.ScalingStatDistributionPriority)
-            {
-                ItemLevelOffsetCurveId = values[0];
-                ItemLevelOffsetItemLevel = values[1];
-                _state.ScalingStatDistributionPriority = values[3];
-            }
-            break;
-        case ITEM_BONUS_SCALING_CONFIG_AND_REQ_LEVEL:
-            if (values[1] < _state.ScalingStatDistributionPriority)
-            {
-                _state.ScalingStatDistributionPriority = values[1];
-                if (ItemScalingConfigEntry const* scalingConfig = sItemScalingConfigStore.LookupEntry(values[0]))
-                {
-                    if (ItemOffsetCurveEntry const* itemOffsetCurve = sItemOffsetCurveStore.LookupEntry(scalingConfig->ItemOffsetCurveID))
-                    {
-                        ItemLevelOffsetCurveId = itemOffsetCurve->CurveID;
-                        ItemLevelOffset = itemOffsetCurve->Offset;
-                    }
-
-                    ScalingConfigUsesPlayerLevel = false;
-                    ItemSquishEraID = scalingConfig->ItemSquishEraID;
-                    if (scalingConfig->Flags & 0x1)
-                        IgnoreSquish = true;
-                    if (scalingConfig->Flags & 0x2)
-                        RestrictScalingToContentTuning = true;
-
-                    if (values[1] < _state.RequiredLevelCurvePriority)
-                    {
-                        ItemLevelOffsetItemLevel = scalingConfig->ItemLevel;
-                        RequiredLevelOverride = scalingConfig->RequiredLevel;
-                        RequiredLevelCurve = 0;
-                    }
-                }
-            }
-            break;
-        case ITEM_BONUS_ITEM_BONUS_LIST:
-            AddBonusList(values[0]);
-            break;
-        case ITEM_BONUS_SCALING_CONFIG:
-            if (values[1] < _state.ScalingStatDistributionPriority)
-            {
-                _state.ScalingStatDistributionPriority = values[1];
-                if (ItemScalingConfigEntry const* scalingConfig = sItemScalingConfigStore.LookupEntry(values[0]))
-                {
-                    if (ItemOffsetCurveEntry const* itemOffsetCurve = sItemOffsetCurveStore.LookupEntry(scalingConfig->ItemOffsetCurveID))
-                    {
-                        ItemLevelOffsetCurveId = itemOffsetCurve->CurveID;
-                        ItemLevelOffset = itemOffsetCurve->Offset;
-                    }
-
-                    ScalingConfigUsesPlayerLevel = true;
-                    ItemLevelOffsetItemLevel = 0;
-                    ItemSquishEraID = scalingConfig->ItemSquishEraID;
-                    if (scalingConfig->Flags & 0x1)
-                        IgnoreSquish = true;
-                    if (scalingConfig->Flags & 0x2)
-                        RestrictScalingToContentTuning = true;
-                }
-            }
-            break;
-        case ITEM_BONUS_CRAFTED_ITEM_LEVEL:
-            if (values[3] < _state.ScalingConfigCraftingQualityItemLevelBonusPriority)
-            {
-                bool isSquished = false;
-                if (std::shared_ptr<Realm const> currentRealm = sRealmList->GetCurrentRealm())
-                {
-                    int32 currentBuild = ClientBuild::GetMinorMajorBugfixVersionForBuild(currentRealm->Build);
-
-                    // apply all squishes between items_squish and server_squish
-                    for (uint32 squishId = values[1] + 1; squishId < sItemSquishEraStore.GetNumRows(); ++squishId)
-                    {
-                        ItemSquishEraEntry const* squish = sItemSquishEraStore.LookupEntry(squishId);
-                        if (!squish || squish->Flags & 0x1)
-                            continue;
-
-                        isSquished = squish->Patch <= currentBuild;
-                        break;
-                    }
-                }
-
-                ScalingConfigCraftingQualityItemLevelBonus = values[isSquished ? 2 : 0];
-                _state.ScalingConfigCraftingQualityItemLevelBonusPriority = values[3];
-            }
-            break;
-        case ITEM_BONUS_SCALING_ITEM_LEVEL_BONUS:
-            if (values[1] < _state.ScalingConfigItemLevelBonusPriority)
-            {
-                ScalingConfigItemLevelBonus = values[0];
-                _state.ScalingConfigItemLevelBonusPriority = values[1];
             }
             break;
     }

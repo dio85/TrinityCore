@@ -1250,58 +1250,18 @@ enum ItemExtendedCostFlags
 
 enum ItemBonusType
 {
-    ITEM_BONUS_ITEM_LEVEL                       = 1,
+    ITEM_BONUS_NO_BONUS                         = 0,
     ITEM_BONUS_STAT                             = 2,
-    ITEM_BONUS_QUALITY                          = 3,
-    ITEM_BONUS_NAME_SUBTITLE                    = 4,              // Text under name
+    ITEM_BONUS_SET_ITEM_QUALITY                 = 3,
     ITEM_BONUS_SUFFIX                           = 5,
-    ITEM_BONUS_SOCKET                           = 6,
-    ITEM_BONUS_APPEARANCE                       = 7,
-    ITEM_BONUS_REQUIRED_LEVEL                   = 8,
-    ITEM_BONUS_DISPLAY_TOAST_METHOD             = 9,
-    ITEM_BONUS_REPAIR_COST_MULTIPLIER           = 10,
-    ITEM_BONUS_SCALING_STAT_DISTRIBUTION        = 11,
-    ITEM_BONUS_DISENCHANT_LOOT_ID               = 12,
     ITEM_BONUS_SCALING_STAT_DISTRIBUTION_FIXED  = 13,
-    ITEM_BONUS_ITEM_LEVEL_CAN_INCREASE          = 14,             // Displays a + next to item level indicating it can warforge
-    ITEM_BONUS_RANDOM_ENCHANTMENT               = 15,             // Responsible for showing "<Random additional stats>" or "+%d Rank Random Minor Trait" in the tooltip before item is obtained
-    ITEM_BONUS_BONDING                          = 16,
-    ITEM_BONUS_RELIC_TYPE                       = 17,
-    ITEM_BONUS_OVERRIDE_REQUIRED_LEVEL          = 18,
-    ITEM_BONUS_AZERITE_TIER_UNLOCK_SET          = 19,
-    ITEM_BONUS_SCRAPPING_LOOT_ID                = 20, /*NYI*/
-    ITEM_BONUS_OVERRIDE_CAN_DISENCHANT          = 21,
-    ITEM_BONUS_OVERRIDE_CAN_SCRAP               = 22,
     ITEM_BONUS_ITEM_EFFECT_ID                   = 23,
-    ITEM_BONUS_OVERRIDE_CANT_UNEQUIP_IN_COMBAT  = 24, /*NYI*/
-    ITEM_BONUS_MODIFIED_CRAFTING_STAT           = 25, /*NYI*/
     ITEM_BONUS_REQUIRED_LEVEL_CURVE             = 27,
-    ITEM_BONUS_ICON_FILE_DATA_ID                = 28,
-    ITEM_BONUS_MAX_UPGRADE_SEQUENCE_VALUE       = 29, /*NYI*/
-    ITEM_BONUS_DESCRIPTION_TEXT                 = 30,             // Item description
-    ITEM_BONUS_OVERRIDE_NAME                    = 31,             // ItemNameDescription id
-    ITEM_BONUS_OVERRIDE_NO_CREATOR              = 32, /*NYI*/
-    ITEM_BONUS_UPGRADE_SEQUENCE_VALUE           = 33, /*NYI*/
-    ITEM_BONUS_ITEM_BONUS_LIST_GROUP            = 34, /*NYI*/
     ITEM_BONUS_ITEM_LIMIT_CATEGORY              = 35,
-    ITEM_BONUS_PVP_ITEM_LEVEL_INCREMENT         = 36,
-    ITEM_BONUS_ITEM_CONVERSION                  = 37, /*NYI*/
-    ITEM_BONUS_ITEM_HISTORY_SLOT                = 38, /*NYI*/
-    ITEM_BONUS_OVERRIDE_CAN_SALVAGE             = 39,
-    ITEM_BONUS_SALVAGE_LOOT_ID                  = 40, /*NYI*/
-    ITEM_BONUS_OVERRIDE_CAN_RECRAFT             = 41,
-    ITEM_BONUS_ITEM_LEVEL_BASE                  = 42,
-    ITEM_BONUS_PVP_ITEM_LEVEL_BASE              = 43,
-    ITEM_BONUS_COSMETIC_STAT                    = 44,
-    ITEM_BONUS_OVERRIDE_DESCRIPTION_COLOR       = 45,             // Overrides color of item description and upgrade track if TimeEvent from value[1] has passed
-    ITEM_BONUS_OVERRIDE_CANNOT_TRADE_BOP        = 46,
     ITEM_BONUS_BONDING_WITH_PRIORITY            = 47,
-    ITEM_BONUS_ITEM_OFFSET_CURVE                = 48,
-    ITEM_BONUS_SCALING_CONFIG_AND_REQ_LEVEL     = 49,
-    ITEM_BONUS_ITEM_BONUS_LIST                  = 50,
-    ITEM_BONUS_SCALING_CONFIG                   = 51,
-    ITEM_BONUS_CRAFTED_ITEM_LEVEL               = 52,
-    ITEM_BONUS_SCALING_ITEM_LEVEL_BONUS         = 53,             // Applied only when ItemScalingConfig is used
+    ITEM_BONUS_NULL1                            = 54,
+    ITEM_BONUS_NULL2                            = 55,
+    ITEM_BONUS_NULL3                            = 56
 };
 
 enum class ItemCollectionType : uint8

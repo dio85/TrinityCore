@@ -1126,18 +1126,6 @@ void LoadLootTemplates_Disenchant()
             lootIdSetUsed.insert(lootid);
     }
 
-    for (ItemBonusEntry const* itemBonus : sItemBonusStore)
-    {
-        if (itemBonus->Type != ITEM_BONUS_DISENCHANT_LOOT_ID)
-            continue;
-
-        uint32 lootid = itemBonus->Value[0];
-        if (!lootIdSet.contains(lootid))
-            LootTemplates_Disenchant.ReportNonExistingId(lootid, "ItemBonusList", itemBonus->ParentItemBonusListID);
-        else
-            lootIdSetUsed.insert(lootid);
-    }
-
     for (uint32 lootId : lootIdSetUsed)
         lootIdSet.erase(lootId);
 

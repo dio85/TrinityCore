@@ -3057,12 +3057,6 @@ uint32 FillMaxDurability(uint32 itemClass, uint32 itemSubClass, uint32 inventory
         0.00f, // INVTYPE_RANGEDRIGHT
         0.00f, // INVTYPE_QUIVER
         0.00f, // INVTYPE_RELIC
-        0.00f, // INVTYPE_PROFESSION_TOOL
-        0.00f, // INVTYPE_PROFESSION_GEAR
-        0.00f, // INVTYPE_EQUIPABLE_SPELL_OFFENSIVE
-        0.00f, // INVTYPE_EQUIPABLE_SPELL_UTILITY
-        0.00f, // INVTYPE_EQUIPABLE_SPELL_DEFENSIVE
-        0.00f, // INVTYPE_EQUIPABLE_SPELL_MOBILITY
     };
 
     static float const weaponMultipliers[MAX_ITEM_SUBCLASS_WEAPON] =
